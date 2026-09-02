@@ -296,14 +296,23 @@
     justify-content:center;
     overflow:hidden;
     position:relative;
+    padding:12px;
+    min-height:0;
+  }
+  #imgViewer .viewer-stage .rotate-wrap{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transform:rotate(90deg);
   }
   #imgViewer .viewer-stage img{
-    max-width:100vh;
-    max-height:100vw;
+    display:block;
+    max-width:calc(100vh - 220px);
+    max-height:calc(100vw - 40px);
     width:auto;
     height:auto;
-    transform:rotate(90deg);
     object-fit:contain;
+    border-radius:6px;
     box-shadow:0 10px 40px rgba(0,0,0,0.5);
   }
   #imgViewer .viewer-bottom{
@@ -431,7 +440,9 @@
     <button type="button" class="viewer-close" onclick="closeViewer()" aria-label="Cerrar">&times;</button>
   </div>
   <div class="viewer-stage">
-    <img src="PromocionO2.JPG" alt="Promoción O2">
+    <div class="rotate-wrap">
+      <img src="PromocionO2.JPG" alt="Promoción O2">
+    </div>
   </div>
   <div class="viewer-bottom">
     <a href="PromocionO2.JPG" download>Descargar imagen</a>
