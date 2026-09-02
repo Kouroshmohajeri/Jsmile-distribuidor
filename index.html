@@ -17,7 +17,7 @@
     --radius:16px;
   }
   *{box-sizing:border-box;}
-  body{
+  html,body{
     margin:0;
     font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
     background:var(--bg);
@@ -26,6 +26,78 @@
     font-size:15px;
     -webkit-font-smoothing:antialiased;
   }
+  body.is-loading{
+    overflow:hidden;
+    height:100vh;
+  }
+
+  #preloader{
+    position:fixed;
+    inset:0;
+    z-index:9999;
+    background:linear-gradient(160deg, var(--accent), #0d1230 70%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    transition:opacity .5s ease, visibility .5s ease;
+  }
+  #preloader::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:radial-gradient(circle at 80% 10%, rgba(138,123,79,0.25), transparent 55%);
+  }
+  #preloader.hidden{
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+  }
+  .pl-mark{
+    position:relative;
+    width:64px;
+    height:64px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .pl-ring{
+    position:absolute;
+    inset:0;
+    border-radius:50%;
+    border:1.5px solid rgba(255,255,255,0.15);
+    border-top-color:var(--gold);
+    animation:pl-spin 1.1s linear infinite;
+  }
+  .pl-dot{
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    background:var(--gold);
+    animation:pl-pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pl-spin{
+    to{transform:rotate(360deg);}
+  }
+  @keyframes pl-pulse{
+    0%,100%{transform:scale(0.85); opacity:0.7;}
+    50%{transform:scale(1.15); opacity:1;}
+  }
+  .pl-word{
+    position:relative;
+    margin-top:22px;
+    font-size:0.78rem;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:#dfe2ee;
+    font-weight:600;
+    opacity:0;
+    animation:pl-fade .6s ease .15s forwards;
+  }
+  @keyframes pl-fade{
+    to{opacity:1;}
+  }
+
   header{
     background:linear-gradient(160deg, var(--accent), #0d1230 70%);
     color:#fff;
@@ -164,14 +236,22 @@
     body{font-size:16px;}
     header{padding:52px 24px 60px;}
     header h1{font-size:2.1rem;}
-    header p{font-size:1rem;}
+    header p{font-size:1.05rem;}
     section.card{padding:30px 28px;}
     section.card h2{font-size:1.2rem;}
     ul.link-list a{padding:15px 18px; font-size:0.98rem;}
   }
 </style>
 </head>
-<body>
+<body class="is-loading">
+
+<div id="preloader">
+  <div class="pl-mark">
+    <div class="pl-ring"></div>
+    <div class="pl-dot"></div>
+  </div>
+  <p class="pl-word">jsmile</p>
+</div>
 
 <header>
   <p class="eyebrow">jsmile.es</p>
@@ -201,6 +281,12 @@
         <a href="plan-carrera-jsmile.pdf" download>
           <span class="label">Plan Carrera Jsmile</span>
           <span class="tag">PDF</span>
+        </a>
+      </li>
+      <li>
+        <a href="PromocionO2.jpeg" download>
+          <span class="label">Promoción O2</span>
+          <span class="tag">JPEG</span>
         </a>
       </li>
     </ul>
@@ -243,6 +329,17 @@
 <footer>
   jsmile.es
 </footer>
+
+<script>
+  window.addEventListener('load', function(){
+    var pre = document.getElementById('preloader');
+    var minDelay = 600;
+    setTimeout(function(){
+      pre.classList.add('hidden');
+      document.body.classList.remove('is-loading');
+    }, minDelay);
+  });
+</script>
 
 </body>
 </html>
