@@ -26,6 +26,7 @@
     --accent:#1b2559;
     --accent-2:#3a4a8f;
     --gold:#8a7b4f;
+    --green:#1c8a5a;
     --radius:16px;
   }
   *{box-sizing:border-box;}
@@ -88,9 +89,7 @@
     background:var(--gold);
     animation:pl-pulse 1.4s ease-in-out infinite;
   }
-  @keyframes pl-spin{
-    to{transform:rotate(360deg);}
-  }
+  @keyframes pl-spin{ to{transform:rotate(360deg);} }
   @keyframes pl-pulse{
     0%,100%{transform:scale(0.85); opacity:0.7;}
     50%{transform:scale(1.15); opacity:1;}
@@ -106,9 +105,7 @@
     opacity:0;
     animation:pl-fade .6s ease .15s forwards;
   }
-  @keyframes pl-fade{
-    to{opacity:1;}
-  }
+  @keyframes pl-fade{ to{opacity:1;} }
 
   header{
     background:linear-gradient(160deg, var(--accent), #0d1230 70%);
@@ -249,6 +246,199 @@
     padding:14px 20px 20px;
   }
 
+  /* Sales register section */
+  .month-select{
+    display:flex;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .month-select button{
+    flex:1;
+    padding:10px 8px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:var(--bg);
+    color:var(--ink-soft);
+    font-weight:700;
+    font-size:0.82rem;
+    font-family:inherit;
+    cursor:pointer;
+    transition:all .15s ease;
+    text-transform:capitalize;
+  }
+  .month-select button.active{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+  .plan-select{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-bottom:18px;
+  }
+  .plan-select label{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:12px 14px;
+    border:1px solid var(--line);
+    border-radius:11px;
+    background:var(--bg);
+    cursor:pointer;
+    font-size:0.85rem;
+    transition:all .15s ease;
+  }
+  .plan-select label.active{
+    border-color:var(--accent-2);
+    background:#eef0f9;
+  }
+  .plan-select input[type="radio"]{
+    accent-color:var(--accent);
+    width:16px;
+    height:16px;
+    flex-shrink:0;
+  }
+  .plan-select .plan-text strong{
+    display:block;
+    font-size:0.88rem;
+    color:var(--ink);
+  }
+  .plan-select .plan-text span{
+    font-size:0.76rem;
+    color:var(--ink-soft);
+  }
+  .plan-select .custom-inputs{
+    display:none;
+    gap:8px;
+    margin:8px 0 0;
+    padding-left:2px;
+  }
+  .plan-select .custom-inputs.show{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+  }
+  .custom-inputs .field{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .custom-inputs .field span{
+    font-size:0.68rem;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:0.3px;
+    font-weight:700;
+  }
+  .custom-inputs input[type="number"]{
+    width:100%;
+    padding:8px 8px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    font-size:0.9rem;
+    font-family:inherit;
+    text-align:center;
+  }
+
+  .tracker{
+    border-top:1px solid var(--line);
+    padding-top:16px;
+    margin-top:6px;
+  }
+  .tracker-group{
+    margin-bottom:20px;
+  }
+  .tracker-group:last-child{
+    margin-bottom:0;
+  }
+  .tracker-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:10px;
+  }
+  .tracker-head h3{
+    margin:0;
+    font-size:0.88rem;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .tracker-head .count{
+    font-size:0.82rem;
+    font-weight:700;
+    color:var(--accent-2);
+  }
+  .tracker-head .count.complete{
+    color:var(--green);
+  }
+  .checkbox-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(38px, 1fr));
+    gap:8px;
+  }
+  .check-item{
+    aspect-ratio:1;
+    border-radius:9px;
+    border:1.5px solid var(--line);
+    background:var(--bg);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    font-size:0.78rem;
+    font-weight:700;
+    color:var(--ink-soft);
+    transition:all .15s ease;
+    -webkit-tap-highlight-color: transparent;
+    user-select:none;
+  }
+  .check-item.checked{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+  .check-item:active{
+    transform:scale(0.92);
+  }
+  .progress-bar{
+    height:6px;
+    border-radius:999px;
+    background:var(--line);
+    overflow:hidden;
+    margin-top:10px;
+  }
+  .progress-bar .fill{
+    height:100%;
+    background:var(--accent);
+    border-radius:999px;
+    transition:width .25s ease;
+  }
+  .progress-bar .fill.complete{
+    background:var(--green);
+  }
+  .reset-row{
+    margin-top:18px;
+    text-align:center;
+  }
+  .reset-row button{
+    background:none;
+    border:none;
+    color:#b23b3b;
+    font-size:0.8rem;
+    font-weight:600;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .locked-note{
+    background:#fff6e8;
+    border:1px solid #f0dcb0;
+    color:#8a6d1f;
+    font-size:0.78rem;
+    padding:10px 12px;
+    border-radius:10px;
+    margin-bottom:14px;
+  }
+
   /* Full-screen image viewer */
   #imgViewer{
     position:fixed;
@@ -259,9 +449,7 @@
     flex-direction:column;
     overflow:hidden;
   }
-  #imgViewer.open{
-    display:flex;
-  }
+  #imgViewer.open{ display:flex; }
   #imgViewer .viewer-top{
     flex-shrink:0;
     display:flex;
@@ -331,9 +519,7 @@
     color:#1b1a12;
     transition:opacity .15s ease;
   }
-  #imgViewer .viewer-bottom a:active{
-    opacity:0.85;
-  }
+  #imgViewer .viewer-bottom a:active{ opacity:0.85; }
 
   @media (min-width:481px){
     body{font-size:16px;}
@@ -427,6 +613,22 @@
     </ul>
   </section>
 
+  <section class="card">
+    <h2><span class="dot"></span>Registro de Ventas</h2>
+    <p class="desc">Selecciona el mes y tu objetivo mínimo. Marca cada venta a medida que la cierras.</p>
+
+    <div id="monthSelect" class="month-select"></div>
+    <div id="lockedNote" class="locked-note" style="display:none;"></div>
+
+    <div id="planSelect" class="plan-select"></div>
+
+    <div class="tracker" id="trackerArea"></div>
+
+    <div class="reset-row">
+      <button type="button" onclick="resetCurrentMonth()">Reiniciar registro de este mes</button>
+    </div>
+  </section>
+
 </main>
 
 <footer>
@@ -461,12 +663,281 @@
 
   window.addEventListener('load', function(){
     var pre = document.getElementById('preloader');
-    var minDelay = 600;
     setTimeout(function(){
       pre.classList.add('hidden');
       document.body.classList.remove('is-loading');
-    }, minDelay);
+    }, 600);
   });
+
+  /* ---------------- Sales register logic ---------------- */
+
+  const MONTH_NAMES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+
+  const PLANS = {
+    plan1: { label: "Plan 1", fibra: 8,  luz: 11, gas: 4, custom: false },
+    plan2: { label: "Plan 2", fibra: 11, luz: 11, gas: 4, custom: false },
+    plan3: { label: "Plan 3", fibra: 15, luz: 11, gas: 4, custom: false },
+    custom: { label: "Personalizado", fibra: 9, luz: 12, gas: 5, custom: true, min: { fibra: 8, luz: 11, gas: 4 } }
+  };
+
+  const STORAGE_PREFIX = "jsmile_sales_";
+
+  function getNow(){ return new Date(); }
+
+  function monthKey(year, monthIndex){
+    return year + "-" + String(monthIndex + 1).padStart(2,"0");
+  }
+
+  function getSelectableMonths(){
+    const now = getNow();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const current = { year: y, month: m, key: monthKey(y,m), label: MONTH_NAMES[m] };
+    let nextY = y, nextM = m + 1;
+    if(nextM > 11){ nextM = 0; nextY = y + 1; }
+    const next = { year: nextY, month: nextM, key: monthKey(nextY,nextM), label: MONTH_NAMES[nextM] };
+    return [current, next];
+  }
+
+  let state = {
+    selectedMonthKey: null,
+    selectedMonthLabel: null,
+    selectedPlanId: null,
+    customValues: { fibra: 9, luz: 12, gas: 5 }
+  };
+
+  function storageKeyFor(monthKey){
+    return STORAGE_PREFIX + monthKey;
+  }
+
+  function loadMonthData(monthKey){
+    try{
+      const raw = localStorage.getItem(storageKeyFor(monthKey));
+      if(!raw) return null;
+      return JSON.parse(raw);
+    }catch(e){ return null; }
+  }
+
+  function saveMonthData(monthKey, data){
+    localStorage.setItem(storageKeyFor(monthKey), JSON.stringify(data));
+  }
+
+  function renderMonthSelect(){
+    const months = getSelectableMonths();
+    const container = document.getElementById("monthSelect");
+    container.innerHTML = "";
+
+    if(!state.selectedMonthKey){
+      state.selectedMonthKey = months[0].key;
+      state.selectedMonthLabel = months[0].label + " → " + months[1].label;
+    }
+
+    months.forEach((m, idx) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = m.label;
+      const pairKey = months[0].key;
+      if(pairKey === state.selectedMonthKey){
+        btn.classList.add("active");
+      }
+      btn.onclick = () => {
+        state.selectedMonthKey = pairKey;
+        state.selectedMonthLabel = months[0].label + " → " + months[1].label;
+        loadStateForMonth();
+        renderAll();
+      };
+      container.appendChild(btn);
+    });
+
+    document.getElementById("lockedNote").style.display = "none";
+  }
+
+  function loadStateForMonth(){
+    const saved = loadMonthData(state.selectedMonthKey);
+    if(saved){
+      state.selectedPlanId = saved.planId || null;
+      state.customValues = saved.customValues || { fibra: 9, luz: 12, gas: 5 };
+      state.checks = saved.checks || { fibra: [], luz: [], gas: [] };
+    } else {
+      state.selectedPlanId = null;
+      state.customValues = { fibra: 9, luz: 12, gas: 5 };
+      state.checks = { fibra: [], luz: [], gas: [] };
+    }
+  }
+
+  function persist(){
+    saveMonthData(state.selectedMonthKey, {
+      planId: state.selectedPlanId,
+      customValues: state.customValues,
+      checks: state.checks
+    });
+  }
+
+  function renderPlanSelect(){
+    const container = document.getElementById("planSelect");
+    container.innerHTML = "";
+
+    Object.keys(PLANS).forEach(planId => {
+      const plan = PLANS[planId];
+      const label = document.createElement("label");
+      if(state.selectedPlanId === planId) label.classList.add("active");
+
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = "planChoice";
+      radio.value = planId;
+      radio.checked = state.selectedPlanId === planId;
+      radio.onchange = () => {
+        state.selectedPlanId = planId;
+        if(planId !== "custom"){
+          state.checks = { fibra: [], luz: [], gas: [] };
+        } else {
+          state.checks = { fibra: [], luz: [], gas: [] };
+        }
+        persist();
+        renderAll();
+      };
+
+      const textWrap = document.createElement("div");
+      textWrap.className = "plan-text";
+      const strong = document.createElement("strong");
+      strong.textContent = plan.label;
+      const span = document.createElement("span");
+      if(plan.custom){
+        span.textContent = "Fibra > 8, Luz > 11, Gas > 4";
+      } else {
+        span.textContent = plan.fibra + " fibra / " + plan.luz + " luz / " + plan.gas + " gas";
+      }
+      textWrap.appendChild(strong);
+      textWrap.appendChild(span);
+
+      label.appendChild(radio);
+      label.appendChild(textWrap);
+      container.appendChild(label);
+
+      if(plan.custom){
+        const customBox = document.createElement("div");
+        customBox.className = "custom-inputs" + (state.selectedPlanId === "custom" ? " show" : "");
+        customBox.id = "customInputsBox";
+
+        [["fibra","Fibra",9],["luz","Luz",12],["gas","Gas",5]].forEach(([key, lbl, def]) => {
+          const field = document.createElement("div");
+          field.className = "field";
+          const spanLbl = document.createElement("span");
+          spanLbl.textContent = lbl;
+          const input = document.createElement("input");
+          input.type = "number";
+          input.min = key === "fibra" ? 9 : (key === "luz" ? 12 : 5);
+          input.value = state.customValues[key] || def;
+          input.oninput = () => {
+            let val = parseInt(input.value, 10);
+            const minVal = key === "fibra" ? 9 : (key === "luz" ? 12 : 5);
+            if(isNaN(val) || val < minVal) val = minVal;
+            input.value = val;
+            state.customValues[key] = val;
+            state.checks[key] = [];
+            persist();
+            renderTracker();
+          };
+          field.appendChild(spanLbl);
+          field.appendChild(input);
+          customBox.appendChild(field);
+        });
+
+        container.appendChild(customBox);
+      }
+    });
+  }
+
+  function getActivePlanTargets(){
+    if(!state.selectedPlanId) return null;
+    if(state.selectedPlanId === "custom"){
+      return {
+        fibra: state.customValues.fibra,
+        luz: state.customValues.luz,
+        gas: state.customValues.gas
+      };
+    }
+    const p = PLANS[state.selectedPlanId];
+    return { fibra: p.fibra, luz: p.luz, gas: p.gas };
+  }
+
+  function renderTracker(){
+    const area = document.getElementById("trackerArea");
+    area.innerHTML = "";
+
+    const targets = getActivePlanTargets();
+    if(!targets){
+      area.innerHTML = '<p class="note">Elige un plan para empezar a registrar tus ventas.</p>';
+      return;
+    }
+
+    const labels = { fibra: "Fibra", luz: "Luz", gas: "Gas" };
+
+    Object.keys(labels).forEach(key => {
+      const total = targets[key];
+      if(!state.checks[key]) state.checks[key] = [];
+      const checkedCount = state.checks[key].filter(Boolean).length;
+
+      const group = document.createElement("div");
+      group.className = "tracker-group";
+
+      const head = document.createElement("div");
+      head.className = "tracker-head";
+      const h3 = document.createElement("h3");
+      h3.textContent = labels[key];
+      const count = document.createElement("span");
+      count.className = "count" + (checkedCount >= total ? " complete" : "");
+      count.textContent = checkedCount + " / " + total;
+      head.appendChild(h3);
+      head.appendChild(count);
+      group.appendChild(head);
+
+      const grid = document.createElement("div");
+      grid.className = "checkbox-grid";
+      for(let i = 0; i < total; i++){
+        const item = document.createElement("div");
+        item.className = "check-item" + (state.checks[key][i] ? " checked" : "");
+        item.textContent = state.checks[key][i] ? "✓" : (i+1);
+        item.onclick = () => {
+          state.checks[key][i] = !state.checks[key][i];
+          persist();
+          renderTracker();
+        };
+        grid.appendChild(item);
+      }
+      group.appendChild(grid);
+
+      const bar = document.createElement("div");
+      bar.className = "progress-bar";
+      const fill = document.createElement("div");
+      fill.className = "fill" + (checkedCount >= total ? " complete" : "");
+      fill.style.width = Math.min(100, (checkedCount/total)*100) + "%";
+      bar.appendChild(fill);
+      group.appendChild(bar);
+
+      area.appendChild(group);
+    });
+  }
+
+  function resetCurrentMonth(){
+    if(!state.selectedMonthKey) return;
+    if(!confirm("¿Reiniciar todo el registro de este mes?")) return;
+    state.selectedPlanId = null;
+    state.customValues = { fibra: 9, luz: 12, gas: 5 };
+    state.checks = { fibra: [], luz: [], gas: [] };
+    persist();
+    renderAll();
+  }
+
+  function renderAll(){
+    renderMonthSelect();
+    renderPlanSelect();
+    renderTracker();
+  }
+
+  loadStateForMonth();
+  renderAll();
 </script>
 
 </body>
