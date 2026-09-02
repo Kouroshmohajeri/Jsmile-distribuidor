@@ -16,6 +16,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1b2559">
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 <style>
   :root{
     --ink:#12141c;
@@ -416,8 +418,29 @@
   .progress-bar .fill.complete{
     background:var(--green);
   }
-  .reset-row{
+  .action-row{
     margin-top:18px;
+    display:flex;
+    gap:10px;
+  }
+  .action-row .save-btn{
+    flex:1;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    padding:13px 16px;
+    border-radius:11px;
+    font-weight:700;
+    font-size:0.88rem;
+    font-family:inherit;
+    cursor:pointer;
+    transition:opacity .15s ease;
+  }
+  .action-row .save-btn:active{
+    opacity:0.85;
+  }
+  .reset-row{
+    margin-top:12px;
     text-align:center;
   }
   .reset-row button{
@@ -536,6 +559,119 @@
   }
   #imgViewer .viewer-bottom a:active{ opacity:0.85; }
 
+  /* Snapshot card (rendered off-screen, captured to PNG) */
+  #snapshotCard{
+    position:fixed;
+    left:-9999px;
+    top:0;
+    width:420px;
+    background:linear-gradient(160deg, #1b2559, #0a0c1c 75%);
+    padding:36px 32px 32px;
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+    color:#fff;
+  }
+  #snapshotCard .snap-eyebrow{
+    font-size:12px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:#b9beda;
+    font-weight:700;
+    margin:0 0 6px;
+  }
+  #snapshotCard .snap-title{
+    font-size:24px;
+    font-weight:700;
+    margin:0 0 2px;
+    letter-spacing:-0.3px;
+  }
+  #snapshotCard .snap-sub{
+    font-size:13px;
+    color:#9aa0c2;
+    margin:0 0 26px;
+  }
+  #snapshotCard .snap-total{
+    text-align:center;
+    margin-bottom:28px;
+  }
+  #snapshotCard .snap-total .ring-wrap{
+    position:relative;
+    width:168px;
+    height:168px;
+    margin:0 auto 14px;
+  }
+  #snapshotCard .snap-total .ring-num{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+  }
+  #snapshotCard .snap-total .ring-num strong{
+    font-size:38px;
+    font-weight:800;
+    line-height:1;
+  }
+  #snapshotCard .snap-total .ring-num span{
+    font-size:11px;
+    color:#9aa0c2;
+    text-transform:uppercase;
+    letter-spacing:1.5px;
+    margin-top:4px;
+    font-weight:700;
+  }
+  #snapshotCard .snap-plan{
+    text-align:center;
+    font-size:13px;
+    color:#c7ccdd;
+    font-weight:600;
+  }
+  #snapshotCard .snap-breakdown{
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:16px;
+    padding:20px;
+  }
+  #snapshotCard .snap-row{
+    margin-bottom:16px;
+  }
+  #snapshotCard .snap-row:last-child{
+    margin-bottom:0;
+  }
+  #snapshotCard .snap-row-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:6px;
+  }
+  #snapshotCard .snap-row-head .name{
+    font-size:14px;
+    font-weight:700;
+  }
+  #snapshotCard .snap-row-head .val{
+    font-size:13px;
+    font-weight:700;
+    color:#d9b96b;
+  }
+  #snapshotCard .snap-row-bar{
+    height:8px;
+    border-radius:999px;
+    background:rgba(255,255,255,0.12);
+    overflow:hidden;
+  }
+  #snapshotCard .snap-row-bar .fill{
+    height:100%;
+    border-radius:999px;
+    background:linear-gradient(90deg, #8a7b4f, #d9b96b);
+  }
+  #snapshotCard .snap-footer{
+    text-align:center;
+    margin-top:26px;
+    font-size:11px;
+    color:#7d83a3;
+    letter-spacing:0.5px;
+  }
+
   @media (min-width:481px){
     body{font-size:16px;}
     header{padding:52px 24px 60px;}
@@ -641,6 +777,10 @@
 
     <p class="saved-hint"><span class="lgreen"></span> Guardado automáticamente en este dispositivo</p>
 
+    <div class="action-row">
+      <button type="button" class="save-btn" onclick="saveSnapshot()">Guardar snapshot</button>
+    </div>
+
     <div class="reset-row">
       <button type="button" onclick="resetCurrentMonth()">Reiniciar registro de este mes</button>
     </div>
@@ -666,6 +806,31 @@
   <div class="viewer-bottom">
     <a href="PromocionO2.JPG" download>Descargar imagen</a>
   </div>
+</div>
+
+<!-- Hidden snapshot template, rendered to PNG on demand -->
+<div id="snapshotCard">
+  <p class="snap-eyebrow">jsmile.es</p>
+  <p class="snap-title">Resumen de Ventas</p>
+  <p class="snap-sub" id="snapMonthLabel">Mes</p>
+
+  <div class="snap-total">
+    <div class="ring-wrap">
+      <svg width="168" height="168" viewBox="0 0 168 168">
+        <circle cx="84" cy="84" r="72" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="14"/>
+        <circle id="snapRingProgress" cx="84" cy="84" r="72" fill="none" stroke="#d9b96b" stroke-width="14" stroke-linecap="round" transform="rotate(-90 84 84)"/>
+      </svg>
+      <div class="ring-num">
+        <strong id="snapTotalPct">0%</strong>
+        <span>Total</span>
+      </div>
+    </div>
+    <p class="snap-plan" id="snapPlanLabel">Plan</p>
+  </div>
+
+  <div class="snap-breakdown" id="snapBreakdown"></div>
+
+  <p class="snap-footer" id="snapDate">—</p>
 </div>
 
 <script>
@@ -698,7 +863,7 @@
   };
 
   const STORAGE_PREFIX = "jsmile_sales_";
-  const STORAGE_VERSION = 2; // bump when data shape changes
+  const STORAGE_VERSION = 2;
 
   function getNow(){ return new Date(); }
 
@@ -735,7 +900,6 @@
       if(!raw) return null;
       const parsed = JSON.parse(raw);
       if(parsed && parsed.v === STORAGE_VERSION) return parsed;
-      // migrate legacy array-based checks (v1) to counts (v2)
       if(parsed && parsed.checks){
         const migrated = { fibra: 0, luz: 0, gas: 0 };
         ["fibra","luz","gas"].forEach(k => {
@@ -973,6 +1137,84 @@
 
   loadStateForMonth();
   renderAll();
+
+  /* ---------------- Snapshot generation ---------------- */
+
+  function saveSnapshot(){
+    const targets = getActivePlanTargets();
+    if(!targets){
+      alert("Elige un plan antes de guardar el snapshot.");
+      return;
+    }
+
+    const labels = { fibra: "Fibra", luz: "Luz", gas: "Gas" };
+    let totalDone = 0, totalTarget = 0;
+    const perCategory = {};
+
+    Object.keys(labels).forEach(key => {
+      const total = targets[key];
+      const count = Math.min(state.checks[key] || 0, total);
+      perCategory[key] = { count, total, pct: total > 0 ? Math.round((count/total)*100) : 0 };
+      totalDone += count;
+      totalTarget += total;
+    });
+
+    const totalPct = totalTarget > 0 ? Math.round((totalDone/totalTarget)*100) : 0;
+
+    const months = getSelectableMonths();
+    const monthLabelText = months[0].label.charAt(0).toUpperCase() + months[0].label.slice(1) + " → " + months[1].label.charAt(0).toUpperCase() + months[1].label.slice(1);
+    document.getElementById("snapMonthLabel").textContent = monthLabelText;
+
+    const planLabel = state.selectedPlanId === "custom" ? "Plan Personalizado" : PLANS[state.selectedPlanId].label;
+    document.getElementById("snapPlanLabel").textContent = planLabel + " · " + totalDone + " / " + totalTarget + " ventas";
+
+    document.getElementById("snapTotalPct").textContent = totalPct + "%";
+
+    const circumference = 2 * Math.PI * 72;
+    const offset = circumference - (totalPct/100) * circumference;
+    const ring = document.getElementById("snapRingProgress");
+    ring.style.strokeDasharray = circumference;
+    ring.style.strokeDashoffset = offset;
+
+    const breakdown = document.getElementById("snapBreakdown");
+    breakdown.innerHTML = "";
+    Object.keys(labels).forEach(key => {
+      const d = perCategory[key];
+      const row = document.createElement("div");
+      row.className = "snap-row";
+      row.innerHTML =
+        '<div class="snap-row-head">' +
+          '<span class="name">' + labels[key] + '</span>' +
+          '<span class="val">' + d.count + ' / ' + d.total + ' · ' + d.pct + '%</span>' +
+        '</div>' +
+        '<div class="snap-row-bar"><div class="fill" style="width:' + d.pct + '%"></div></div>';
+      breakdown.appendChild(row);
+    });
+
+    const now = getNow();
+    const dateStr = now.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
+    document.getElementById("snapDate").textContent = "Generado el " + dateStr;
+
+    const card = document.getElementById("snapshotCard");
+    card.style.left = "0px";
+    card.style.zIndex = "-1";
+    card.style.opacity = "0";
+    card.style.pointerEvents = "none";
+
+    html2canvas(card, { backgroundColor: null, scale: 2 }).then(function(canvas){
+      card.style.left = "-9999px";
+      card.style.opacity = "";
+      card.style.zIndex = "";
+
+      const link = document.createElement("a");
+      link.download = "jsmile-resumen-" + state.selectedMonthKey + ".png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }).catch(function(err){
+      card.style.left = "-9999px";
+      alert("No se pudo generar la imagen. Inténtalo de nuevo.");
+    });
+  }
 </script>
 
 </body>
