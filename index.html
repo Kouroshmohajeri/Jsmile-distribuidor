@@ -196,7 +196,7 @@
   ul.link-list li:last-child{
     margin-bottom:0;
   }
-  ul.link-list a{
+  ul.link-list a, ul.link-list button.link-row{
     display:flex;
     align-items:center;
     justify-content:space-between;
@@ -211,13 +211,16 @@
     font-size:0.9rem;
     transition:all .15s ease;
     -webkit-tap-highlight-color: transparent;
+    width:100%;
+    font-family:inherit;
+    cursor:pointer;
   }
-  ul.link-list a:active{
+  ul.link-list a:active, ul.link-list button.link-row:active{
     border-color:var(--accent-2);
     background:#eef0f9;
     transform:scale(0.98);
   }
-  ul.link-list a .tag{
+  ul.link-list a .tag, ul.link-list button.link-row .tag{
     font-size:0.64rem;
     font-weight:700;
     letter-spacing:0.4px;
@@ -229,9 +232,10 @@
     white-space:nowrap;
     flex-shrink:0;
   }
-  ul.link-list a .label{
+  ul.link-list a .label, ul.link-list button.link-row .label{
     flex:1;
     min-width:0;
+    text-align:left;
   }
   .note{
     font-size:0.76rem;
@@ -244,6 +248,77 @@
     font-size:0.75rem;
     padding:14px 20px 20px;
   }
+
+  /* Image viewer overlay */
+  #imgViewer{
+    position:fixed;
+    inset:0;
+    z-index:10000;
+    background:rgba(10,11,20,0.92);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    padding:24px 16px;
+    backdrop-filter:blur(4px);
+  }
+  #imgViewer.open{
+    display:flex;
+  }
+  #imgViewer .viewer-box{
+    background:var(--surface);
+    border-radius:var(--radius);
+    padding:16px;
+    max-width:100%;
+    width:100%;
+    max-width:420px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.4);
+  }
+  #imgViewer .viewer-title{
+    font-size:0.9rem;
+    font-weight:700;
+    color:var(--ink);
+    margin:0 0 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  #imgViewer .viewer-close{
+    background:none;
+    border:none;
+    font-size:1.3rem;
+    line-height:1;
+    color:var(--ink-soft);
+    cursor:pointer;
+    padding:2px 6px;
+  }
+  #imgViewer img{
+    display:block;
+    width:100%;
+    border-radius:10px;
+    transform:rotate(180deg);
+  }
+  #imgViewer .viewer-actions{
+    margin-top:14px;
+    display:flex;
+    gap:10px;
+  }
+  #imgViewer .viewer-actions a{
+    flex:1;
+    text-align:center;
+    padding:12px 14px;
+    border-radius:10px;
+    font-weight:700;
+    font-size:0.88rem;
+    text-decoration:none;
+    background:var(--accent);
+    color:#fff;
+    transition:opacity .15s ease;
+  }
+  #imgViewer .viewer-actions a:active{
+    opacity:0.85;
+  }
+
   @media (min-width:481px){
     body{font-size:16px;}
     header{padding:52px 24px 60px;}
@@ -251,7 +326,7 @@
     header p{font-size:1.05rem;}
     section.card{padding:30px 28px;}
     section.card h2{font-size:1.2rem;}
-    ul.link-list a{padding:15px 18px; font-size:0.98rem;}
+    ul.link-list a, ul.link-list button.link-row{padding:15px 18px; font-size:0.98rem;}
   }
 </style>
 </head>
@@ -296,13 +371,13 @@
         </a>
       </li>
       <li>
-        <a href="PromocionO2.JPG" download>
+        <button type="button" class="link-row" onclick="openViewer()">
           <span class="label">Promoción O2</span>
-          <span class="tag">JPG</span>
-        </a>
+          <span class="tag">Ver</span>
+        </button>
       </li>
     </ul>
-    <p class="note">Los archivos se descargan directamente al pulsar el enlace.</p>
+    <p class="note">Los archivos PDF se descargan directamente al pulsar el enlace.</p>
   </section>
 
   <section class="card">
@@ -342,7 +417,31 @@
   jsmile.es
 </footer>
 
+<!-- Image viewer overlay -->
+<div id="imgViewer">
+  <div class="viewer-box">
+    <p class="viewer-title">
+      Promoción O2
+      <button type="button" class="viewer-close" onclick="closeViewer()" aria-label="Cerrar">&times;</button>
+    </p>
+    <img src="PromocionO2.JPG" alt="Promoción O2">
+    <div class="viewer-actions">
+      <a href="PromocionO2.JPG" download>Descargar</a>
+    </div>
+  </div>
+</div>
+
 <script>
+  function openViewer(){
+    document.getElementById('imgViewer').classList.add('open');
+  }
+  function closeViewer(){
+    document.getElementById('imgViewer').classList.remove('open');
+  }
+  document.getElementById('imgViewer').addEventListener('click', function(e){
+    if(e.target.id === 'imgViewer') closeViewer();
+  });
+
   window.addEventListener('load', function(){
     var pre = document.getElementById('preloader');
     var minDelay = 600;
