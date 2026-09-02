@@ -249,73 +249,80 @@
     padding:14px 20px 20px;
   }
 
-  /* Image viewer overlay */
+  /* Full-screen image viewer */
   #imgViewer{
     position:fixed;
     inset:0;
     z-index:10000;
-    background:rgba(10,11,20,0.92);
+    background:#0a0b14;
     display:none;
-    align-items:center;
-    justify-content:center;
     flex-direction:column;
-    padding:24px 16px;
-    backdrop-filter:blur(4px);
+    overflow:hidden;
   }
   #imgViewer.open{
     display:flex;
   }
-  #imgViewer .viewer-box{
-    background:var(--surface);
-    border-radius:var(--radius);
-    padding:16px;
-    max-width:100%;
-    width:100%;
-    max-width:420px;
-    box-shadow:0 20px 60px rgba(0,0,0,0.4);
-  }
-  #imgViewer .viewer-title{
-    font-size:0.9rem;
-    font-weight:700;
-    color:var(--ink);
-    margin:0 0 12px;
+  #imgViewer .viewer-top{
+    flex-shrink:0;
     display:flex;
     align-items:center;
     justify-content:space-between;
+    padding:16px 16px calc(env(safe-area-inset-top,0px) + 4px);
+    padding-top:calc(env(safe-area-inset-top,0px) + 16px);
+    color:#fff;
+    z-index:2;
+  }
+  #imgViewer .viewer-top .viewer-title{
+    font-size:0.9rem;
+    font-weight:700;
+    margin:0;
+    letter-spacing:0.2px;
   }
   #imgViewer .viewer-close{
-    background:none;
+    background:rgba(255,255,255,0.1);
     border:none;
-    font-size:1.3rem;
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    font-size:1.2rem;
     line-height:1;
-    color:var(--ink-soft);
-    cursor:pointer;
-    padding:2px 6px;
-  }
-  #imgViewer img{
-    display:block;
-    width:100%;
-    border-radius:10px;
-    transform:rotate(180deg);
-  }
-  #imgViewer .viewer-actions{
-    margin-top:14px;
-    display:flex;
-    gap:10px;
-  }
-  #imgViewer .viewer-actions a{
-    flex:1;
-    text-align:center;
-    padding:12px 14px;
-    border-radius:10px;
-    font-weight:700;
-    font-size:0.88rem;
-    text-decoration:none;
-    background:var(--accent);
     color:#fff;
+    cursor:pointer;
+  }
+  #imgViewer .viewer-stage{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    position:relative;
+  }
+  #imgViewer .viewer-stage img{
+    max-width:100vh;
+    max-height:100vw;
+    width:auto;
+    height:auto;
+    transform:rotate(90deg);
+    object-fit:contain;
+    box-shadow:0 10px 40px rgba(0,0,0,0.5);
+  }
+  #imgViewer .viewer-bottom{
+    flex-shrink:0;
+    padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 16px);
+  }
+  #imgViewer .viewer-bottom a{
+    display:block;
+    text-align:center;
+    padding:14px 16px;
+    border-radius:12px;
+    font-weight:700;
+    font-size:0.92rem;
+    text-decoration:none;
+    background:var(--gold);
+    color:#1b1a12;
     transition:opacity .15s ease;
   }
-  #imgViewer .viewer-actions a:active{
+  #imgViewer .viewer-bottom a:active{
     opacity:0.85;
   }
 
@@ -417,30 +424,29 @@
   jsmile.es
 </footer>
 
-<!-- Image viewer overlay -->
+<!-- Full-screen image viewer -->
 <div id="imgViewer">
-  <div class="viewer-box">
-    <p class="viewer-title">
-      Promoción O2
-      <button type="button" class="viewer-close" onclick="closeViewer()" aria-label="Cerrar">&times;</button>
-    </p>
+  <div class="viewer-top">
+    <p class="viewer-title">Promoción O2</p>
+    <button type="button" class="viewer-close" onclick="closeViewer()" aria-label="Cerrar">&times;</button>
+  </div>
+  <div class="viewer-stage">
     <img src="PromocionO2.JPG" alt="Promoción O2">
-    <div class="viewer-actions">
-      <a href="PromocionO2.JPG" download>Descargar</a>
-    </div>
+  </div>
+  <div class="viewer-bottom">
+    <a href="PromocionO2.JPG" download>Descargar imagen</a>
   </div>
 </div>
 
 <script>
   function openViewer(){
     document.getElementById('imgViewer').classList.add('open');
+    document.body.style.overflow = 'hidden';
   }
   function closeViewer(){
     document.getElementById('imgViewer').classList.remove('open');
+    document.body.style.overflow = '';
   }
-  document.getElementById('imgViewer').addEventListener('click', function(e){
-    if(e.target.id === 'imgViewer') closeViewer();
-  });
 
   window.addEventListener('load', function(){
     var pre = document.getElementById('preloader');
