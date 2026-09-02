@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bienvenida | jsmile.es</title>
+<style>
+  :root{
+    --jsmile-primary:#0057ff;
+    --jsmile-dark:#0a0a0a;
+    --jsmile-light:#f5f7fb;
+    --jsmile-accent:#00d1b2;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+    background:var(--jsmile-light);
+    color:var(--jsmile-dark);
+    line-height:1.55;
+    font-size:15px;
+  }
+  header{
+    background:linear-gradient(135deg, var(--jsmile-primary), #003ea8);
+    color:#fff;
+    padding:32px 18px 30px;
+    text-align:center;
+  }
+  header img{
+    height:40px;
+    margin-bottom:12px;
+  }
+  header h1{
+    margin:0;
+    font-size:1.5rem;
+    letter-spacing:-0.3px;
+  }
+  header p{
+    margin:8px 0 0;
+    opacity:0.9;
+    font-size:0.95rem;
+  }
+  main{
+    max-width:480px;
+    margin:-18px auto 50px;
+    padding:0 14px;
+  }
+  section.card{
+    background:#fff;
+    border-radius:var(--radius);
+    box-shadow:0 6px 20px rgba(0,0,0,0.08);
+    padding:20px 18px;
+    margin-bottom:20px;
+  }
+  section.card h2{
+    margin-top:0;
+    font-size:1.05rem;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  section.card h2::before{
+    content:"";
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:var(--jsmile-accent);
+    display:inline-block;
+    flex-shrink:0;
+  }
+  section.card > p{
+    font-size:0.88rem;
+    color:#555;
+    margin:6px 0 0;
+  }
+  ul.link-list{
+    list-style:none;
+    margin:16px 0 0;
+    padding:0;
+  }
+  ul.link-list li{
+    margin-bottom:10px;
+  }
+  ul.link-list a{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:14px 16px;
+    background:var(--jsmile-light);
+    border:1px solid #e3e8f0;
+    border-radius:10px;
+    text-decoration:none;
+    color:var(--jsmile-dark);
+    font-weight:500;
+    font-size:0.92rem;
+    transition:all .15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  ul.link-list a:active{
+    border-color:var(--jsmile-primary);
+    background:#eef3ff;
+    transform:scale(0.98);
+  }
+  ul.link-list a .tag{
+    font-size:0.68rem;
+    font-weight:700;
+    text-transform:uppercase;
+    color:var(--jsmile-primary);
+    background:#e6edff;
+    padding:3px 8px;
+    border-radius:999px;
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  ul.link-list a .label{
+    flex:1;
+    min-width:0;
+  }
+  .note{
+    font-size:0.8rem;
+    color:#777;
+    margin-top:14px;
+  }
+  footer{
+    text-align:center;
+    color:#888;
+    font-size:0.78rem;
+    padding:16px;
+  }
+  @media (min-width:481px){
+    body{font-size:16px;}
+    header{padding:48px 24px 40px;}
+    header h1{font-size:2rem;}
+    header p{font-size:1.05rem;}
+    section.card{padding:32px;}
+    section.card h2{font-size:1.3rem;}
+    ul.link-list a{padding:14px 18px; font-size:1rem;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>¡Bienvenido/a a jsmile.es! 😊</h1>
+  <p>Todo lo que necesitas para empezar</p>
+</header>
+
+<main>
+
+  <section class="card">
+    <h2>Documentos para descargar</h2>
+    <p>Descarga y revisa estos archivos antes de tu primer día.</p>
+    <ul class="link-list">
+      <li>
+        <a href="/files/plan-entrenamiento.pdf" download>
+          <span class="label">Plan Entrenamiento</span>
+          <span class="tag">PDF</span>
+        </a>
+      </li>
+      <li>
+        <a href="/files/manual-distribuidor.pdf" download>
+          <span class="label">Manual Distribuidor/a</span>
+          <span class="tag">PDF</span>
+        </a>
+      </li>
+      <li>
+        <a href="/files/plan-carrera-jsmile.pdf" download>
+          <span class="label">Plan Carrera Jsmile</span>
+          <span class="tag">PDF</span>
+        </a>
+      </li>
+    </ul>
+    <p class="note">Los archivos se descargan directamente al pulsar. Si aún no ves el archivo, contacta con tu responsable.</p>
+  </section>
+
+  <section class="card">
+    <h2>Enlaces de acceso</h2>
+    <p>Accede a las herramientas que usarás en tu día a día.</p>
+    <ul class="link-list">
+      <li>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLScV3DkKmZJiYnld0bMWB-5I1j57d7156ncLqoFSwYEQI2lGBA/viewscore?viewscore=AE0zAgAhH6vntjVBrPg71pUh-Nk6PDXRTu197I7C9qV3t7cT8W8_us5qz6eeqNp_l0XVPyM" target="_blank" rel="noopener">
+          <span class="label">Reporte final del día</span>
+          <span class="tag">Formulario</span>
+        </a>
+      </li>
+      <li>
+        <a href="https://o2online.es/auth/login/?next=%2Fventas%2F&type=retail" target="_blank" rel="noopener">
+          <span class="label">O2</span>
+          <span class="tag">Acceso</span>
+        </a>
+      </li>
+      <li>
+        <a href="https://retailx.es/" target="_blank" rel="noopener">
+          <span class="label">Lowi</span>
+          <span class="tag">Acceso</span>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  &copy; 2026 jsmile.es — Página de bienvenida para nuevos/as comerciales
+</footer>
+
+</body>
+</html>
