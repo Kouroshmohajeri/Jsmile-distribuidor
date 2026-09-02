@@ -438,6 +438,21 @@
     border-radius:10px;
     margin-bottom:14px;
   }
+  .saved-hint{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:0.72rem;
+    color:#8a8f9c;
+    margin-top:12px;
+  }
+  .saved-hint .lgreen{
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:var(--green);
+    flex-shrink:0;
+  }
 
   /* Full-screen image viewer */
   #imgViewer{
@@ -624,6 +639,8 @@
 
     <div class="tracker" id="trackerArea"></div>
 
+    <p class="saved-hint"><span class="lgreen"></span> Guardado automáticamente en este dispositivo</p>
+
     <div class="reset-row">
       <button type="button" onclick="resetCurrentMonth()">Reiniciar registro de este mes</button>
     </div>
@@ -677,10 +694,11 @@
     plan1: { label: "Plan 1", fibra: 8,  luz: 11, gas: 4, custom: false },
     plan2: { label: "Plan 2", fibra: 11, luz: 11, gas: 4, custom: false },
     plan3: { label: "Plan 3", fibra: 15, luz: 11, gas: 4, custom: false },
-    custom: { label: "Personalizado", fibra: 9, luz: 12, gas: 5, custom: true, min: { fibra: 8, luz: 11, gas: 4 } }
+    custom: { label: "Personalizado", fibra: 9, luz: 12, gas: 5, custom: true }
   };
 
   const STORAGE_PREFIX = "jsmile_sales_";
+  const STORAGE_VERSION = 2; // bump when data shape changes
 
   function getNow(){ return new Date(); }
 
@@ -703,7 +721,8 @@
     selectedMonthKey: null,
     selectedMonthLabel: null,
     selectedPlanId: null,
-    customValues: { fibra: 9, luz: 12, gas: 5 }
+    customValues: { fibra: 9, luz: 12, gas: 5 },
+    checks: { fibra: 0, luz: 0, gas: 0 }
   };
 
   function storageKeyFor(monthKey){
@@ -714,11 +733,27 @@
     try{
       const raw = localStorage.getItem(storageKeyFor(monthKey));
       if(!raw) return null;
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if(parsed && parsed.v === STORAGE_VERSION) return parsed;
+      // migrate legacy array-based checks (v1) to counts (v2)
+      if(parsed && parsed.checks){
+        const migrated = { fibra: 0, luz: 0, gas: 0 };
+        ["fibra","luz","gas"].forEach(k => {
+          const arr = parsed.checks[k];
+          if(Array.isArray(arr)){
+            migrated[k] = arr.filter(Boolean).length;
+          } else if(typeof arr === "number"){
+            migrated[k] = arr;
+          }
+        });
+        return { v: STORAGE_VERSION, planId: parsed.planId || null, customValues: parsed.customValues || { fibra:9, luz:12, gas:5 }, checks: migrated };
+      }
+      return null;
     }catch(e){ return null; }
   }
 
   function saveMonthData(monthKey, data){
+    data.v = STORAGE_VERSION;
     localStorage.setItem(storageKeyFor(monthKey), JSON.stringify(data));
   }
 
@@ -732,7 +767,7 @@
       state.selectedMonthLabel = months[0].label + " → " + months[1].label;
     }
 
-    months.forEach((m, idx) => {
+    months.forEach((m) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.textContent = m.label;
@@ -757,11 +792,11 @@
     if(saved){
       state.selectedPlanId = saved.planId || null;
       state.customValues = saved.customValues || { fibra: 9, luz: 12, gas: 5 };
-      state.checks = saved.checks || { fibra: [], luz: [], gas: [] };
+      state.checks = saved.checks || { fibra: 0, luz: 0, gas: 0 };
     } else {
       state.selectedPlanId = null;
       state.customValues = { fibra: 9, luz: 12, gas: 5 };
-      state.checks = { fibra: [], luz: [], gas: [] };
+      state.checks = { fibra: 0, luz: 0, gas: 0 };
     }
   }
 
@@ -789,11 +824,7 @@
       radio.checked = state.selectedPlanId === planId;
       radio.onchange = () => {
         state.selectedPlanId = planId;
-        if(planId !== "custom"){
-          state.checks = { fibra: [], luz: [], gas: [] };
-        } else {
-          state.checks = { fibra: [], luz: [], gas: [] };
-        }
+        state.checks = { fibra: 0, luz: 0, gas: 0 };
         persist();
         renderAll();
       };
@@ -818,7 +849,6 @@
       if(plan.custom){
         const customBox = document.createElement("div");
         customBox.className = "custom-inputs" + (state.selectedPlanId === "custom" ? " show" : "");
-        customBox.id = "customInputsBox";
 
         [["fibra","Fibra",9],["luz","Luz",12],["gas","Gas",5]].forEach(([key, lbl, def]) => {
           const field = document.createElement("div");
@@ -827,15 +857,14 @@
           spanLbl.textContent = lbl;
           const input = document.createElement("input");
           input.type = "number";
-          input.min = key === "fibra" ? 9 : (key === "luz" ? 12 : 5);
+          input.min = def;
           input.value = state.customValues[key] || def;
           input.oninput = () => {
             let val = parseInt(input.value, 10);
-            const minVal = key === "fibra" ? 9 : (key === "luz" ? 12 : 5);
-            if(isNaN(val) || val < minVal) val = minVal;
+            if(isNaN(val) || val < def) val = def;
             input.value = val;
             state.customValues[key] = val;
-            state.checks[key] = [];
+            state.checks[key] = 0;
             persist();
             renderTracker();
           };
@@ -876,8 +905,8 @@
 
     Object.keys(labels).forEach(key => {
       const total = targets[key];
-      if(!state.checks[key]) state.checks[key] = [];
-      const checkedCount = state.checks[key].filter(Boolean).length;
+      let count = state.checks[key] || 0;
+      if(count > total) count = total;
 
       const group = document.createElement("div");
       group.className = "tracker-group";
@@ -886,21 +915,27 @@
       head.className = "tracker-head";
       const h3 = document.createElement("h3");
       h3.textContent = labels[key];
-      const count = document.createElement("span");
-      count.className = "count" + (checkedCount >= total ? " complete" : "");
-      count.textContent = checkedCount + " / " + total;
+      const countLabel = document.createElement("span");
+      countLabel.className = "count" + (count >= total ? " complete" : "");
+      countLabel.textContent = count + " / " + total;
       head.appendChild(h3);
-      head.appendChild(count);
+      head.appendChild(countLabel);
       group.appendChild(head);
 
       const grid = document.createElement("div");
       grid.className = "checkbox-grid";
       for(let i = 0; i < total; i++){
+        const isChecked = i < count;
         const item = document.createElement("div");
-        item.className = "check-item" + (state.checks[key][i] ? " checked" : "");
-        item.textContent = state.checks[key][i] ? "✓" : (i+1);
+        item.className = "check-item" + (isChecked ? " checked" : "");
+        item.textContent = isChecked ? "✓" : (i+1);
         item.onclick = () => {
-          state.checks[key][i] = !state.checks[key][i];
+          const position = i + 1;
+          if(state.checks[key] === position){
+            state.checks[key] = position - 1;
+          } else {
+            state.checks[key] = position;
+          }
           persist();
           renderTracker();
         };
@@ -911,8 +946,8 @@
       const bar = document.createElement("div");
       bar.className = "progress-bar";
       const fill = document.createElement("div");
-      fill.className = "fill" + (checkedCount >= total ? " complete" : "");
-      fill.style.width = Math.min(100, (checkedCount/total)*100) + "%";
+      fill.className = "fill" + (count >= total ? " complete" : "");
+      fill.style.width = Math.min(100, (count/total)*100) + "%";
       bar.appendChild(fill);
       group.appendChild(bar);
 
@@ -925,7 +960,7 @@
     if(!confirm("¿Reiniciar todo el registro de este mes?")) return;
     state.selectedPlanId = null;
     state.customValues = { fibra: 9, luz: 12, gas: 5 };
-    state.checks = { fibra: [], luz: [], gas: [] };
+    state.checks = { fibra: 0, luz: 0, gas: 0 };
     persist();
     renderAll();
   }
