@@ -16,8 +16,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#1b2559">
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
 <style>
   :root{
     --ink:#12141c;
@@ -559,117 +557,51 @@
   }
   #imgViewer .viewer-bottom a:active{ opacity:0.85; }
 
-  /* Snapshot card (rendered off-screen, captured to PNG) */
-  #snapshotCard{
+  /* Snapshot preview overlay */
+  #snapOverlay{
     position:fixed;
-    left:-9999px;
-    top:0;
-    width:420px;
-    background:linear-gradient(160deg, #1b2559, #0a0c1c 75%);
-    padding:36px 32px 32px;
-    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
-    color:#fff;
-  }
-  #snapshotCard .snap-eyebrow{
-    font-size:12px;
-    letter-spacing:3px;
-    text-transform:uppercase;
-    color:#b9beda;
-    font-weight:700;
-    margin:0 0 6px;
-  }
-  #snapshotCard .snap-title{
-    font-size:24px;
-    font-weight:700;
-    margin:0 0 2px;
-    letter-spacing:-0.3px;
-  }
-  #snapshotCard .snap-sub{
-    font-size:13px;
-    color:#9aa0c2;
-    margin:0 0 26px;
-  }
-  #snapshotCard .snap-total{
-    text-align:center;
-    margin-bottom:28px;
-  }
-  #snapshotCard .snap-total .ring-wrap{
-    position:relative;
-    width:168px;
-    height:168px;
-    margin:0 auto 14px;
-  }
-  #snapshotCard .snap-total .ring-num{
-    position:absolute;
     inset:0;
-    display:flex;
+    z-index:10001;
+    background:rgba(10,11,20,0.92);
+    display:none;
     align-items:center;
     justify-content:center;
     flex-direction:column;
-  }
-  #snapshotCard .snap-total .ring-num strong{
-    font-size:38px;
-    font-weight:800;
-    line-height:1;
-  }
-  #snapshotCard .snap-total .ring-num span{
-    font-size:11px;
-    color:#9aa0c2;
-    text-transform:uppercase;
-    letter-spacing:1.5px;
-    margin-top:4px;
-    font-weight:700;
-  }
-  #snapshotCard .snap-plan{
-    text-align:center;
-    font-size:13px;
-    color:#c7ccdd;
-    font-weight:600;
-  }
-  #snapshotCard .snap-breakdown{
-    background:rgba(255,255,255,0.06);
-    border:1px solid rgba(255,255,255,0.1);
-    border-radius:16px;
     padding:20px;
   }
-  #snapshotCard .snap-row{
-    margin-bottom:16px;
+  #snapOverlay.open{ display:flex; }
+  #snapOverlay canvas{
+    max-width:100%;
+    max-height:70vh;
+    border-radius:14px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.5);
   }
-  #snapshotCard .snap-row:last-child{
-    margin-bottom:0;
-  }
-  #snapshotCard .snap-row-head{
+  #snapOverlay .snap-actions{
     display:flex;
-    justify-content:space-between;
-    align-items:baseline;
-    margin-bottom:6px;
+    gap:10px;
+    margin-top:18px;
+    width:100%;
+    max-width:360px;
   }
-  #snapshotCard .snap-row-head .name{
-    font-size:14px;
-    font-weight:700;
-  }
-  #snapshotCard .snap-row-head .val{
-    font-size:13px;
-    font-weight:700;
-    color:#d9b96b;
-  }
-  #snapshotCard .snap-row-bar{
-    height:8px;
-    border-radius:999px;
-    background:rgba(255,255,255,0.12);
-    overflow:hidden;
-  }
-  #snapshotCard .snap-row-bar .fill{
-    height:100%;
-    border-radius:999px;
-    background:linear-gradient(90deg, #8a7b4f, #d9b96b);
-  }
-  #snapshotCard .snap-footer{
+  #snapOverlay .snap-actions a, #snapOverlay .snap-actions button{
+    flex:1;
     text-align:center;
-    margin-top:26px;
-    font-size:11px;
-    color:#7d83a3;
-    letter-spacing:0.5px;
+    padding:13px 14px;
+    border-radius:12px;
+    font-weight:700;
+    font-size:0.9rem;
+    font-family:inherit;
+    cursor:pointer;
+    border:none;
+    text-decoration:none;
+  }
+  #snapOverlay .snap-actions a{
+    background:var(--gold);
+    color:#1b1a12;
+  }
+  #snapOverlay .snap-actions button{
+    background:rgba(255,255,255,0.1);
+    color:#fff;
   }
 
   @media (min-width:481px){
@@ -808,29 +740,13 @@
   </div>
 </div>
 
-<!-- Hidden snapshot template, rendered to PNG on demand -->
-<div id="snapshotCard">
-  <p class="snap-eyebrow">jsmile.es</p>
-  <p class="snap-title">Resumen de Ventas</p>
-  <p class="snap-sub" id="snapMonthLabel">Mes</p>
-
-  <div class="snap-total">
-    <div class="ring-wrap">
-      <svg width="168" height="168" viewBox="0 0 168 168">
-        <circle cx="84" cy="84" r="72" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="14"/>
-        <circle id="snapRingProgress" cx="84" cy="84" r="72" fill="none" stroke="#d9b96b" stroke-width="14" stroke-linecap="round" transform="rotate(-90 84 84)"/>
-      </svg>
-      <div class="ring-num">
-        <strong id="snapTotalPct">0%</strong>
-        <span>Total</span>
-      </div>
-    </div>
-    <p class="snap-plan" id="snapPlanLabel">Plan</p>
+<!-- Snapshot preview overlay -->
+<div id="snapOverlay">
+  <canvas id="snapCanvas"></canvas>
+  <div class="snap-actions">
+    <button type="button" onclick="closeSnapOverlay()">Cerrar</button>
+    <a id="snapDownloadLink" download="jsmile-resumen.png">Descargar</a>
   </div>
-
-  <div class="snap-breakdown" id="snapBreakdown"></div>
-
-  <p class="snap-footer" id="snapDate">—</p>
 </div>
 
 <script>
@@ -1138,7 +1054,21 @@
   loadStateForMonth();
   renderAll();
 
-  /* ---------------- Snapshot generation ---------------- */
+  /* ---------------- Snapshot generation (pure canvas, CodeSnap-style) ---------------- */
+
+  function roundRect(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function closeSnapOverlay(){
+    document.getElementById('snapOverlay').classList.remove('open');
+  }
 
   function saveSnapshot(){
     const targets = getActivePlanTargets();
@@ -1162,58 +1092,181 @@
     const totalPct = totalTarget > 0 ? Math.round((totalDone/totalTarget)*100) : 0;
 
     const months = getSelectableMonths();
-    const monthLabelText = months[0].label.charAt(0).toUpperCase() + months[0].label.slice(1) + " → " + months[1].label.charAt(0).toUpperCase() + months[1].label.slice(1);
-    document.getElementById("snapMonthLabel").textContent = monthLabelText;
+    const monthLabelText =
+      months[0].label.charAt(0).toUpperCase() + months[0].label.slice(1) +
+      " → " +
+      months[1].label.charAt(0).toUpperCase() + months[1].label.slice(1);
 
     const planLabel = state.selectedPlanId === "custom" ? "Plan Personalizado" : PLANS[state.selectedPlanId].label;
-    document.getElementById("snapPlanLabel").textContent = planLabel + " · " + totalDone + " / " + totalTarget + " ventas";
-
-    document.getElementById("snapTotalPct").textContent = totalPct + "%";
-
-    const circumference = 2 * Math.PI * 72;
-    const offset = circumference - (totalPct/100) * circumference;
-    const ring = document.getElementById("snapRingProgress");
-    ring.style.strokeDasharray = circumference;
-    ring.style.strokeDashoffset = offset;
-
-    const breakdown = document.getElementById("snapBreakdown");
-    breakdown.innerHTML = "";
-    Object.keys(labels).forEach(key => {
-      const d = perCategory[key];
-      const row = document.createElement("div");
-      row.className = "snap-row";
-      row.innerHTML =
-        '<div class="snap-row-head">' +
-          '<span class="name">' + labels[key] + '</span>' +
-          '<span class="val">' + d.count + ' / ' + d.total + ' · ' + d.pct + '%</span>' +
-        '</div>' +
-        '<div class="snap-row-bar"><div class="fill" style="width:' + d.pct + '%"></div></div>';
-      breakdown.appendChild(row);
-    });
-
     const now = getNow();
     const dateStr = now.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
-    document.getElementById("snapDate").textContent = "Generado el " + dateStr;
 
-    const card = document.getElementById("snapshotCard");
-    card.style.left = "0px";
-    card.style.zIndex = "-1";
-    card.style.opacity = "0";
-    card.style.pointerEvents = "none";
+    /* ---- Canvas setup (retina-sharp) ---- */
+    const SCALE = 2;
+    const W = 640, H = 760;
+    const canvas = document.getElementById('snapCanvas');
+    canvas.width = W * SCALE;
+    canvas.height = H * SCALE;
+    canvas.style.width = W + "px";
+    canvas.style.height = H + "px";
+    const ctx = canvas.getContext('2d');
+    ctx.scale(SCALE, SCALE);
 
-    html2canvas(card, { backgroundColor: null, scale: 2 }).then(function(canvas){
-      card.style.left = "-9999px";
-      card.style.opacity = "";
-      card.style.zIndex = "";
+    /* ---- Backdrop (CodeSnap-style soft gradient) ---- */
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, "#e9ecf6");
+    bg.addColorStop(1, "#dfe3f0");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
 
-      const link = document.createElement("a");
-      link.download = "jsmile-resumen-" + state.selectedMonthKey + ".png";
-      link.href = canvas.toDataURL("image/png");
-      link.click();
-    }).catch(function(err){
-      card.style.left = "-9999px";
-      alert("No se pudo generar la imagen. Inténtalo de nuevo.");
+    /* ---- Floating card ---- */
+    const cardX = 40, cardY = 46, cardW = W - 80, cardH = H - 92, cardR = 26;
+
+    ctx.save();
+    ctx.shadowColor = "rgba(20,22,40,0.35)";
+    ctx.shadowBlur = 40;
+    ctx.shadowOffsetY = 22;
+    const cardGrad = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
+    cardGrad.addColorStop(0, "#1b2559");
+    cardGrad.addColorStop(1, "#0a0c1c");
+    ctx.fillStyle = cardGrad;
+    roundRect(ctx, cardX, cardY, cardW, cardH, cardR);
+    ctx.fill();
+    ctx.restore();
+
+    /* ---- Window dots (macOS / CodeSnap style) ---- */
+    const dotY = cardY + 28;
+    const dotColors = ["#ff5f57", "#febc2e", "#28c840"];
+    dotColors.forEach((c, i) => {
+      ctx.beginPath();
+      ctx.arc(cardX + 30 + i * 20, dotY, 6, 0, Math.PI * 2);
+      ctx.fillStyle = c;
+      ctx.fill();
     });
+
+    let cy = cardY + 74;
+    const cx = cardX + cardW / 2;
+
+    /* ---- Header text ---- */
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#b9beda";
+    ctx.font = "700 12px 'Segoe UI', system-ui, sans-serif";
+    ctx.save();
+    ctx.textAlign = "left";
+    ctx.font = "700 11px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillStyle = "#9aa0c2";
+    ctx.textAlign = "center";
+    ctx.font = "700 11px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillStyle = "#9aa0c2";
+    const eyebrow = "J S M I L E . E S";
+    ctx.fillText(eyebrow, cx, cy);
+    ctx.restore();
+
+    cy += 28;
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "800 26px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillText("Resumen de Ventas", cx, cy);
+
+    cy += 24;
+    ctx.fillStyle = "#9aa0c2";
+    ctx.font = "600 13px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillText(monthLabelText, cx, cy);
+
+    /* ---- Progress ring (total %) ---- */
+    const ringR = 86;
+    const ringCY = cy + 60 + ringR;
+    const ringCX = cx;
+
+    ctx.beginPath();
+    ctx.arc(ringCX, ringCY, ringR, 0, Math.PI * 2);
+    ctx.lineWidth = 14;
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.stroke();
+
+    const startAngle = -Math.PI / 2;
+    const endAngle = startAngle + (totalPct / 100) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(ringCX, ringCY, ringR, startAngle, endAngle);
+    ctx.lineWidth = 14;
+    ctx.lineCap = "round";
+    const ringGrad = ctx.createLinearGradient(ringCX - ringR, ringCY, ringCX + ringR, ringCY);
+    ringGrad.addColorStop(0, "#8a7b4f");
+    ringGrad.addColorStop(1, "#e3c983");
+    ctx.strokeStyle = ringGrad;
+    ctx.stroke();
+    ctx.lineCap = "butt";
+
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "800 44px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillText(totalPct + "%", ringCX, ringCY + 14);
+
+    ctx.fillStyle = "#9aa0c2";
+    ctx.font = "700 11px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillText("PROGRESO TOTAL", ringCX, ringCY + 36);
+
+    cy = ringCY + ringR + 34;
+    ctx.fillStyle = "#c7ccdd";
+    ctx.font = "700 14px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillText(planLabel + "  ·  " + totalDone + " / " + totalTarget + " ventas", cx, cy);
+
+    /* ---- Breakdown panel ---- */
+    cy += 26;
+    const panelX = cardX + 34, panelW = cardW - 68;
+    const panelY = cy, panelH = 178;
+
+    ctx.fillStyle = "rgba(255,255,255,0.06)";
+    roundRect(ctx, panelX, panelY, panelW, panelH, 18);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.1)";
+    ctx.lineWidth = 1;
+    roundRect(ctx, panelX, panelY, panelW, panelH, 18);
+    ctx.stroke();
+
+    const rowKeys = ["fibra","luz","gas"];
+    const rowPad = 24;
+    const rowGap = (panelH - rowPad*2) / 3;
+    rowKeys.forEach((key, idx) => {
+      const d = perCategory[key];
+      const rowY = panelY + rowPad + idx * rowGap;
+
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "700 15px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillText(labels[key], panelX + 24, rowY);
+
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#e3c983";
+      ctx.font = "700 13px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillText(d.count + " / " + d.total + "  ·  " + d.pct + "%", panelX + panelW - 24, rowY);
+
+      const barY = rowY + 12;
+      const barW = panelW - 48;
+      ctx.fillStyle = "rgba(255,255,255,0.14)";
+      roundRect(ctx, panelX + 24, barY, barW, 8, 4);
+      ctx.fill();
+
+      const fillW = Math.max(6, (d.pct/100) * barW);
+      const barGrad = ctx.createLinearGradient(panelX + 24, barY, panelX + 24 + barW, barY);
+      barGrad.addColorStop(0, "#8a7b4f");
+      barGrad.addColorStop(1, "#e3c983");
+      ctx.fillStyle = barGrad;
+      roundRect(ctx, panelX + 24, barY, fillW, 8, 4);
+      ctx.fill();
+    });
+
+    /* ---- Footer ---- */
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#7d83a3";
+    ctx.font = "600 11px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillText("Generado el " + dateStr, cx, cardY + cardH - 26);
+
+    /* ---- Show overlay + wire download ---- */
+    const dataUrl = canvas.toDataURL("image/png");
+    const link = document.getElementById("snapDownloadLink");
+    link.href = dataUrl;
+    link.download = "jsmile-resumen-" + state.selectedMonthKey + ".png";
+
+    document.getElementById('snapOverlay').classList.add('open');
   }
 </script>
 
