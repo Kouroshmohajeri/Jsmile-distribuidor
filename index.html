@@ -247,6 +247,33 @@
   }
 
   /* Sales register section */
+  .field-block{
+    margin-bottom:16px;
+  }
+  .field-block label{
+    display:block;
+    font-size:0.72rem;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .field-block input[type="text"]{
+    width:100%;
+    padding:12px 14px;
+    border-radius:11px;
+    border:1px solid var(--line);
+    background:var(--bg);
+    font-size:0.92rem;
+    font-family:inherit;
+    color:var(--ink);
+  }
+  .field-block input[type="text"]:focus{
+    outline:none;
+    border-color:var(--accent-2);
+    background:#fff;
+  }
   .month-select{
     display:flex;
     gap:8px;
@@ -709,6 +736,11 @@
     <h2><span class="dot"></span>Registro de Ventas</h2>
     <p class="desc">Selecciona el mes y tu objetivo mínimo. Marca cada venta a medida que la cierras.</p>
 
+    <div class="field-block">
+      <label for="distNameInput">Nombre del distribuidor/a</label>
+      <input type="text" id="distNameInput" placeholder="Ej. María García" autocomplete="name">
+    </div>
+
     <div id="monthSelect" class="month-select"></div>
     <div id="lockedNote" class="locked-note" style="display:none;"></div>
 
@@ -791,6 +823,7 @@
 
   const STORAGE_PREFIX = "jsmile_sales_";
   const STORAGE_VERSION = 2;
+  const NAME_STORAGE_KEY = "jsmile_dist_name";
 
   function getNow(){ return new Date(); }
 
@@ -846,6 +879,21 @@
   function saveMonthData(monthKey, data){
     data.v = STORAGE_VERSION;
     localStorage.setItem(storageKeyFor(monthKey), JSON.stringify(data));
+  }
+
+  function loadDistName(){
+    try{ return localStorage.getItem(NAME_STORAGE_KEY) || ""; }catch(e){ return ""; }
+  }
+  function saveDistName(name){
+    try{ localStorage.setItem(NAME_STORAGE_KEY, name); }catch(e){}
+  }
+
+  function initNameField(){
+    const input = document.getElementById("distNameInput");
+    input.value = loadDistName();
+    input.addEventListener("input", () => {
+      saveDistName(input.value.trim());
+    });
   }
 
   function renderMonthSelect(){
@@ -1062,6 +1110,7 @@
     renderTracker();
   }
 
+  initNameField();
   loadStateForMonth();
   renderAll();
 
@@ -1087,6 +1136,8 @@
       alert("Elige un plan antes de guardar el snapshot.");
       return;
     }
+
+    const distName = document.getElementById("distNameInput").value.trim();
 
     const labels = { fibra: "Fibra", luz: "Luz", gas: "Gas" };
     let totalDone = 0, totalTarget = 0;
@@ -1114,7 +1165,7 @@
 
     /* ---- Canvas setup (retina-sharp, well-proportioned) ---- */
     const SCALE = 2;
-    const W = 640, H = 620;
+    const W = 640, H = 660;
     const canvas = document.getElementById('snapCanvas');
     canvas.width = W * SCALE;
     canvas.height = H * SCALE;
@@ -1153,8 +1204,16 @@
       ctx.fill();
     });
 
+    /* ---- Distributor name badge (top-right of window bar) ---- */
+    if(distName){
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#c7ccdd";
+      ctx.font = "700 12px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillText(distName, cardX + cardW - 26, dotY + 4);
+    }
+
     const cx = cardX + cardW / 2;
-    let cy = cardY + 62;
+    let cy = cardY + 66;
 
     /* ---- Header text ---- */
     ctx.textAlign = "center";
@@ -1162,24 +1221,29 @@
     ctx.font = "700 11px 'Segoe UI', system-ui, sans-serif";
     ctx.fillText("J S M I L E . E S", cx, cy);
 
-    cy += 26;
+    cy += 25;
     ctx.fillStyle = "#ffffff";
-    ctx.font = "800 23px 'Segoe UI', system-ui, sans-serif";
+    ctx.font = "800 22px 'Segoe UI', system-ui, sans-serif";
     ctx.fillText("Resumen de Ventas", cx, cy);
 
-    cy += 21;
+    cy += 20;
+    ctx.fillStyle = "#e3c983";
+    ctx.font = "700 13.5px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillText(distName || "Distribuidor/a", cx, cy);
+
+    cy += 19;
     ctx.fillStyle = "#9aa0c2";
-    ctx.font = "600 12px 'Segoe UI', system-ui, sans-serif";
+    ctx.font = "600 11.5px 'Segoe UI', system-ui, sans-serif";
     ctx.fillText(monthLabelText, cx, cy);
 
     /* ---- Progress ring (total %) ---- */
-    const ringR = 66;
-    const ringCY = cy + 44 + ringR;
+    const ringR = 62;
+    const ringCY = cy + 42 + ringR;
     const ringCX = cx;
 
     ctx.beginPath();
     ctx.arc(ringCX, ringCY, ringR, 0, Math.PI * 2);
-    ctx.lineWidth = 11;
+    ctx.lineWidth = 10.5;
     ctx.strokeStyle = "rgba(255,255,255,0.12)";
     ctx.stroke();
 
@@ -1187,7 +1251,7 @@
     const endAngle = startAngle + (totalPct / 100) * Math.PI * 2;
     ctx.beginPath();
     ctx.arc(ringCX, ringCY, ringR, startAngle, endAngle);
-    ctx.lineWidth = 11;
+    ctx.lineWidth = 10.5;
     ctx.lineCap = "round";
     const ringGrad = ctx.createLinearGradient(ringCX - ringR, ringCY, ringCX + ringR, ringCY);
     ringGrad.addColorStop(0, "#8a7b4f");
@@ -1197,20 +1261,20 @@
     ctx.lineCap = "butt";
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "800 34px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillText(totalPct + "%", ringCX, ringCY + 11);
+    ctx.font = "800 32px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillText(totalPct + "%", ringCX, ringCY + 10);
 
     ctx.fillStyle = "#9aa0c2";
-    ctx.font = "700 10px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillText("PROGRESO TOTAL", ringCX, ringCY + 29);
+    ctx.font = "700 9.5px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillText("PROGRESO TOTAL", ringCX, ringCY + 27);
 
-    cy = ringCY + ringR + 30;
+    cy = ringCY + ringR + 28;
     ctx.fillStyle = "#c7ccdd";
     ctx.font = "700 13px 'Segoe UI', system-ui, sans-serif";
     ctx.fillText(planLabel + "  ·  " + totalDone + " / " + totalTarget + " ventas", cx, cy);
 
     /* ---- Breakdown panel ---- */
-    cy += 22;
+    cy += 20;
     const panelX = cardX + 28, panelW = cardW - 56;
     const panelY = cy, panelH = 148;
 
@@ -1267,7 +1331,8 @@
     const dataUrl = canvas.toDataURL("image/png");
     const link = document.getElementById("snapDownloadLink");
     link.href = dataUrl;
-    link.download = "jsmile-resumen-" + state.selectedMonthKey + ".png";
+    const safeName = distName ? distName.toLowerCase().replace(/[^a-z0-9]+/g, "-") : "distribuidor";
+    link.download = "jsmile-resumen-" + safeName + "-" + state.selectedMonthKey + ".png";
 
     document.getElementById('snapOverlay').classList.add('open');
   }
