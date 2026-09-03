@@ -570,9 +570,18 @@
     padding:20px;
   }
   #snapOverlay.open{ display:flex; }
+  #snapCanvasWrap{
+    width:100%;
+    max-width:340px;
+    aspect-ratio:640/620;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
   #snapOverlay canvas{
-    max-width:100%;
-    max-height:70vh;
+    width:100%;
+    height:100%;
+    display:block;
     border-radius:14px;
     box-shadow:0 20px 60px rgba(0,0,0,0.5);
   }
@@ -581,7 +590,7 @@
     gap:10px;
     margin-top:18px;
     width:100%;
-    max-width:360px;
+    max-width:340px;
   }
   #snapOverlay .snap-actions a, #snapOverlay .snap-actions button{
     flex:1;
@@ -742,7 +751,9 @@
 
 <!-- Snapshot preview overlay -->
 <div id="snapOverlay">
-  <canvas id="snapCanvas"></canvas>
+  <div id="snapCanvasWrap">
+    <canvas id="snapCanvas"></canvas>
+  </div>
   <div class="snap-actions">
     <button type="button" onclick="closeSnapOverlay()">Cerrar</button>
     <a id="snapDownloadLink" download="jsmile-resumen.png">Descargar</a>
@@ -1101,16 +1112,14 @@
     const now = getNow();
     const dateStr = now.toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' });
 
-    /* ---- Canvas setup (retina-sharp) ---- */
+    /* ---- Canvas setup (retina-sharp, well-proportioned) ---- */
     const SCALE = 2;
-    const W = 640, H = 760;
+    const W = 640, H = 620;
     const canvas = document.getElementById('snapCanvas');
     canvas.width = W * SCALE;
     canvas.height = H * SCALE;
-    canvas.style.width = W + "px";
-    canvas.style.height = H + "px";
     const ctx = canvas.getContext('2d');
-    ctx.scale(SCALE, SCALE);
+    ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
 
     /* ---- Backdrop (CodeSnap-style soft gradient) ---- */
     const bg = ctx.createLinearGradient(0, 0, W, H);
@@ -1120,12 +1129,12 @@
     ctx.fillRect(0, 0, W, H);
 
     /* ---- Floating card ---- */
-    const cardX = 40, cardY = 46, cardW = W - 80, cardH = H - 92, cardR = 26;
+    const cardX = 44, cardY = 40, cardW = W - 88, cardH = H - 80, cardR = 24;
 
     ctx.save();
-    ctx.shadowColor = "rgba(20,22,40,0.35)";
-    ctx.shadowBlur = 40;
-    ctx.shadowOffsetY = 22;
+    ctx.shadowColor = "rgba(20,22,40,0.32)";
+    ctx.shadowBlur = 36;
+    ctx.shadowOffsetY = 18;
     const cardGrad = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
     cardGrad.addColorStop(0, "#1b2559");
     cardGrad.addColorStop(1, "#0a0c1c");
@@ -1135,51 +1144,42 @@
     ctx.restore();
 
     /* ---- Window dots (macOS / CodeSnap style) ---- */
-    const dotY = cardY + 28;
+    const dotY = cardY + 24;
     const dotColors = ["#ff5f57", "#febc2e", "#28c840"];
     dotColors.forEach((c, i) => {
       ctx.beginPath();
-      ctx.arc(cardX + 30 + i * 20, dotY, 6, 0, Math.PI * 2);
+      ctx.arc(cardX + 28 + i * 18, dotY, 5.5, 0, Math.PI * 2);
       ctx.fillStyle = c;
       ctx.fill();
     });
 
-    let cy = cardY + 74;
     const cx = cardX + cardW / 2;
+    let cy = cardY + 62;
 
     /* ---- Header text ---- */
     ctx.textAlign = "center";
-    ctx.fillStyle = "#b9beda";
-    ctx.font = "700 12px 'Segoe UI', system-ui, sans-serif";
-    ctx.save();
-    ctx.textAlign = "left";
-    ctx.font = "700 11px 'Segoe UI', system-ui, sans-serif";
     ctx.fillStyle = "#9aa0c2";
-    ctx.textAlign = "center";
     ctx.font = "700 11px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillStyle = "#9aa0c2";
-    const eyebrow = "J S M I L E . E S";
-    ctx.fillText(eyebrow, cx, cy);
-    ctx.restore();
+    ctx.fillText("J S M I L E . E S", cx, cy);
 
-    cy += 28;
+    cy += 26;
     ctx.fillStyle = "#ffffff";
-    ctx.font = "800 26px 'Segoe UI', system-ui, sans-serif";
+    ctx.font = "800 23px 'Segoe UI', system-ui, sans-serif";
     ctx.fillText("Resumen de Ventas", cx, cy);
 
-    cy += 24;
+    cy += 21;
     ctx.fillStyle = "#9aa0c2";
-    ctx.font = "600 13px 'Segoe UI', system-ui, sans-serif";
+    ctx.font = "600 12px 'Segoe UI', system-ui, sans-serif";
     ctx.fillText(monthLabelText, cx, cy);
 
     /* ---- Progress ring (total %) ---- */
-    const ringR = 86;
-    const ringCY = cy + 60 + ringR;
+    const ringR = 66;
+    const ringCY = cy + 44 + ringR;
     const ringCX = cx;
 
     ctx.beginPath();
     ctx.arc(ringCX, ringCY, ringR, 0, Math.PI * 2);
-    ctx.lineWidth = 14;
+    ctx.lineWidth = 11;
     ctx.strokeStyle = "rgba(255,255,255,0.12)";
     ctx.stroke();
 
@@ -1187,7 +1187,7 @@
     const endAngle = startAngle + (totalPct / 100) * Math.PI * 2;
     ctx.beginPath();
     ctx.arc(ringCX, ringCY, ringR, startAngle, endAngle);
-    ctx.lineWidth = 14;
+    ctx.lineWidth = 11;
     ctx.lineCap = "round";
     const ringGrad = ctx.createLinearGradient(ringCX - ringR, ringCY, ringCX + ringR, ringCY);
     ringGrad.addColorStop(0, "#8a7b4f");
@@ -1197,33 +1197,33 @@
     ctx.lineCap = "butt";
 
     ctx.fillStyle = "#ffffff";
-    ctx.font = "800 44px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillText(totalPct + "%", ringCX, ringCY + 14);
+    ctx.font = "800 34px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillText(totalPct + "%", ringCX, ringCY + 11);
 
     ctx.fillStyle = "#9aa0c2";
-    ctx.font = "700 11px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillText("PROGRESO TOTAL", ringCX, ringCY + 36);
+    ctx.font = "700 10px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillText("PROGRESO TOTAL", ringCX, ringCY + 29);
 
-    cy = ringCY + ringR + 34;
+    cy = ringCY + ringR + 30;
     ctx.fillStyle = "#c7ccdd";
-    ctx.font = "700 14px 'Segoe UI', system-ui, sans-serif";
+    ctx.font = "700 13px 'Segoe UI', system-ui, sans-serif";
     ctx.fillText(planLabel + "  ·  " + totalDone + " / " + totalTarget + " ventas", cx, cy);
 
     /* ---- Breakdown panel ---- */
-    cy += 26;
-    const panelX = cardX + 34, panelW = cardW - 68;
-    const panelY = cy, panelH = 178;
+    cy += 22;
+    const panelX = cardX + 28, panelW = cardW - 56;
+    const panelY = cy, panelH = 148;
 
     ctx.fillStyle = "rgba(255,255,255,0.06)";
-    roundRect(ctx, panelX, panelY, panelW, panelH, 18);
+    roundRect(ctx, panelX, panelY, panelW, panelH, 16);
     ctx.fill();
     ctx.strokeStyle = "rgba(255,255,255,0.1)";
     ctx.lineWidth = 1;
-    roundRect(ctx, panelX, panelY, panelW, panelH, 18);
+    roundRect(ctx, panelX, panelY, panelW, panelH, 16);
     ctx.stroke();
 
     const rowKeys = ["fibra","luz","gas"];
-    const rowPad = 24;
+    const rowPad = 20;
     const rowGap = (panelH - rowPad*2) / 3;
     rowKeys.forEach((key, idx) => {
       const d = perCategory[key];
@@ -1231,36 +1231,39 @@
 
       ctx.textAlign = "left";
       ctx.fillStyle = "#ffffff";
-      ctx.font = "700 15px 'Segoe UI', system-ui, sans-serif";
-      ctx.fillText(labels[key], panelX + 24, rowY);
+      ctx.font = "700 14px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillText(labels[key], panelX + 20, rowY);
 
       ctx.textAlign = "right";
       ctx.fillStyle = "#e3c983";
-      ctx.font = "700 13px 'Segoe UI', system-ui, sans-serif";
-      ctx.fillText(d.count + " / " + d.total + "  ·  " + d.pct + "%", panelX + panelW - 24, rowY);
+      ctx.font = "700 12px 'Segoe UI', system-ui, sans-serif";
+      ctx.fillText(d.count + " / " + d.total + "  ·  " + d.pct + "%", panelX + panelW - 20, rowY);
 
-      const barY = rowY + 12;
-      const barW = panelW - 48;
+      const barY = rowY + 11;
+      const barW = panelW - 40;
       ctx.fillStyle = "rgba(255,255,255,0.14)";
-      roundRect(ctx, panelX + 24, barY, barW, 8, 4);
+      roundRect(ctx, panelX + 20, barY, barW, 7, 3.5);
       ctx.fill();
 
       const fillW = Math.max(6, (d.pct/100) * barW);
-      const barGrad = ctx.createLinearGradient(panelX + 24, barY, panelX + 24 + barW, barY);
+      const barGrad = ctx.createLinearGradient(panelX + 20, barY, panelX + 20 + barW, barY);
       barGrad.addColorStop(0, "#8a7b4f");
       barGrad.addColorStop(1, "#e3c983");
       ctx.fillStyle = barGrad;
-      roundRect(ctx, panelX + 24, barY, fillW, 8, 4);
+      roundRect(ctx, panelX + 20, barY, fillW, 7, 3.5);
       ctx.fill();
     });
 
     /* ---- Footer ---- */
     ctx.textAlign = "center";
     ctx.fillStyle = "#7d83a3";
-    ctx.font = "600 11px 'Segoe UI', system-ui, sans-serif";
-    ctx.fillText("Generado el " + dateStr, cx, cardY + cardH - 26);
+    ctx.font = "600 10.5px 'Segoe UI', system-ui, sans-serif";
+    ctx.fillText("Generado el " + dateStr, cx, cardY + cardH - 20);
 
     /* ---- Show overlay + wire download ---- */
+    const wrap = document.getElementById('snapCanvasWrap');
+    wrap.style.aspectRatio = W + "/" + H;
+
     const dataUrl = canvas.toDataURL("image/png");
     const link = document.getElementById("snapDownloadLink");
     link.href = dataUrl;
