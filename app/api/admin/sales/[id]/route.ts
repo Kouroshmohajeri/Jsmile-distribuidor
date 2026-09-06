@@ -1,22 +1,38 @@
 import { NextResponse } from "next/server";
+
 import { requireAdmin, requireUser } from "@/lib/auth";
 import { dbConnect } from "@/lib/mongodb";
 import SalesEntry, { SaleCategory, SaleStatus } from "@/lib/models/SalesEntry";
 
 const STATES: SaleStatus[] = ["procesando", "finalizado", "rechazado"];
+
 const CATEGORIES: SaleCategory[] = ["fibra", "luz", "gas"];
 
-type Counts = { fibra: number; luz: number; gas: number };
+type Counts = {
+  fibra: number;
+  luz: number;
+  gas: number;
+};
 
-function deriveStatus(items: { state: SaleStatus }[]): SaleStatus {
-  if (items.some((item) => item.state === "rechazado")) return "rechazado";
+type SaleItem = {
+  category: SaleCategory;
+  index: number;
+  state: SaleStatus;
+};
+
+function deriveStatus(items: SaleItem[]): SaleStatus {
+  if (items.some((item) => item.state === "rechazado")) {
+    return "rechazado";
+  }
+
   if (items.length > 0 && items.every((item) => item.state === "finalizado")) {
     return "finalizado";
   }
+
   return "procesando";
 }
 
-function countsFromItems(items: { category: SaleCategory }[]): Counts {
+function countsFromItems(items: SaleItem[]): Counts {
   return items.reduce<Counts>(
     (counts, item) => {
       counts[item.category] += 1;
@@ -27,7 +43,8 @@ function countsFromItems(items: { category: SaleCategory }[]): Counts {
 }
 
 function normalizedEntry(entry: any) {
-  const items = Array.isArray(entry.items) ? entry.items : [];
+  const items: SaleItem[] = Array.isArray(entry.items) ? entry.items : [];
+
   const counts = countsFromItems(items);
   const status = deriveStatus(items);
 
@@ -51,16 +68,26 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   const admin = await requireAdmin();
+
   await dbConnect();
+
   const { id } = await context.params;
+
   const entry = await SalesEntry.findById(id);
 
   if (!entry) {
-    return NextResponse.json({ error: "Registro no encontrado" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Registro no encontrado" },
+      { status: 404 },
+    );
   }
 
   await entry.deleteOne();
-  return NextResponse.json({ ok: true, deletedBy: admin.email });
+
+  return NextResponse.json({
+    ok: true,
+    deletedBy: admin.email,
+  });
 }
 
 export async function PATCH(
@@ -68,14 +95,19 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   const user = await requireUser();
+
   await dbConnect();
 
   const { id } = await context.params;
   const body = await request.json();
+
   const entry = await SalesEntry.findById(id);
 
   if (!entry) {
-    return NextResponse.json({ error: "Registro no encontrado" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Registro no encontrado" },
+      { status: 404 },
+    );
   }
 
   // Admin: change the state of one individual sale.
@@ -85,17 +117,26 @@ export async function PATCH(
     const state = body.state as SaleStatus;
 
     if (!CATEGORIES.includes(category)) {
-      return NextResponse.json({ error: "Categoría no válida" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Categoría no válida" },
+        { status: 400 },
+      );
     }
+
     if (!Number.isInteger(index) || index < 1) {
-      return NextResponse.json({ error: "Número de venta no válido" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Número de venta no válido" },
+        { status: 400 },
+      );
     }
+
     if (!STATES.includes(state)) {
       return NextResponse.json({ error: "Estado no válido" }, { status: 400 });
     }
 
     const item = entry.items.find(
-      (current) => current.category === category && current.index === index,
+      (current: SaleItem) =>
+        current.category === category && current.index === index,
     );
 
     if (!item) {
@@ -106,8 +147,11 @@ export async function PATCH(
     }
 
     item.state = state;
+
     entry.status = deriveStatus(entry.items);
+
     const counts = countsFromItems(entry.items);
+
     entry.counts = counts;
     entry.snapshot.counts = counts;
     entry.snapshot.totalDone = entry.items.length;
@@ -116,18 +160,25 @@ export async function PATCH(
       : 0;
 
     await entry.save();
+
     return NextResponse.json(normalizedEntry(entry));
   }
 
-  // Distributor: only their own records can be edited, and only while
-  // every individual sale is still in process.
+  // Distributor: only their own records can be edited,
+  // and only while every individual sale is still in process.
   if (entry.userId !== user.clerkId) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
   }
 
-  if (entry.status !== "procesando" || entry.items.some((item) => item.state !== "procesando")) {
+  if (
+    entry.status !== "procesando" ||
+    entry.items.some((item: SaleItem) => item.state !== "procesando")
+  ) {
     return NextResponse.json(
-      { error: "Solo puedes modificar registros que sigan completamente en proceso." },
+      {
+        error:
+          "Solo puedes modificar registros que sigan completamente en proceso.",
+      },
       { status: 409 },
     );
   }
@@ -138,10 +189,20 @@ export async function PATCH(
 
   const requested = body.counts || {};
   const targets = entry.snapshot.targets;
+
   const counts: Counts = {
-    fibra: Math.max(0, Math.min(Math.floor(Number(requested.fibra || 0)), targets.fibra)),
-    luz: Math.max(0, Math.min(Math.floor(Number(requested.luz || 0)), targets.luz)),
-    gas: Math.max(0, Math.min(Math.floor(Number(requested.gas || 0)), targets.gas)),
+    fibra: Math.max(
+      0,
+      Math.min(Math.floor(Number(requested.fibra || 0)), targets.fibra),
+    ),
+    luz: Math.max(
+      0,
+      Math.min(Math.floor(Number(requested.luz || 0)), targets.luz),
+    ),
+    gas: Math.max(
+      0,
+      Math.min(Math.floor(Number(requested.gas || 0)), targets.gas),
+    ),
   };
 
   if (counts.fibra + counts.luz + counts.gas === 0) {
@@ -158,6 +219,7 @@ export async function PATCH(
       state: "procesando" as SaleStatus,
     })),
   );
+
   entry.counts = counts;
   entry.status = "procesando";
   entry.snapshot.counts = counts;
@@ -167,5 +229,6 @@ export async function PATCH(
     : 0;
 
   await entry.save();
+
   return NextResponse.json(normalizedEntry(entry));
 }
