@@ -11,21 +11,18 @@ const documents = [
     href: "/assets/plan-entrenamiento.pdf",
     type: "PDF",
   },
-
   {
     title: "Manual Distribuidor/a",
     description: "Guía de trabajo",
     href: "/assets/manual-distribuidor.pdf",
     type: "PDF",
   },
-
   {
     title: "Plan Carrera Jsmile",
     description: "Desarrollo profesional",
     href: "/assets/plan-carrera-jsmile.pdf",
     type: "PDF",
   },
-
   {
     title: "Promoción O2",
     description: "Promoción actual",
@@ -41,28 +38,24 @@ const platforms = [
     href: "https://docs.google.com/forms/d/e/1FAIpQLScV3DkKmZJiYnld0bMWB-5I1j57d7156ncLqoFSwYEQI2lGBA/viewform",
     type: "FORM",
   },
-
   {
     title: "WiBe",
     description: "Wibeonline.es",
     href: "https://wibeonline.es",
     type: "WEB",
   },
-
   {
     title: "O2",
     description: "Plataforma comercial",
     href: "https://o2online.es/auth/login/?next=%2Fventas%2F&type=retail",
     type: "WEB",
   },
-
   {
     title: "Lowi",
     description: "Acceso comercial",
     href: "https://retailx.es/",
     type: "WEB",
   },
-
   {
     title: "Energía",
     description: "Comparador",
@@ -119,6 +112,22 @@ function PlatformIcon() {
       <path d="M7 8h10" />
       <path d="M7 12h3" />
       <path d="M7 16h7" />
+    </svg>
+  );
+}
+
+function AdminIcon() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M12 3 4 7v5c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7l-8-4Z" />
+      <path d="M9 12l2 2 4-4" />
     </svg>
   );
 }
@@ -237,6 +246,36 @@ export default async function DashboardPage() {
             </p>
           </div>
         </div>
+
+        {/* ADMIN ACCESS */}
+        {user.role === "admin" && (
+          <section className="mb-5">
+            <Link
+              href="/admin"
+              className="group flex items-center gap-4 rounded-3xl border border-[#d9d4c2] bg-white p-5 shadow-[0_12px_35px_rgba(18,20,28,.055)] transition duration-200 hover:-translate-y-0.5 hover:border-[#b9ae8b] hover:shadow-lg"
+            >
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#f1eee4] text-[#8a7b4f]">
+                <AdminIcon />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-extrabold uppercase tracking-[1.5px] text-[#8a7b4f]">
+                  Administración
+                </p>
+
+                <p className="mt-1 text-lg font-extrabold text-[#12141c]">
+                  Panel de Administración
+                </p>
+
+                <p className="mt-1 text-sm text-[#777b87]">
+                  Gestiona usuarios, ventas y configuración del sistema.
+                </p>
+              </div>
+
+              <Arrow />
+            </Link>
+          </section>
+        )}
 
         {/* DESKTOP RESOURCE GRID */}
         <div className="grid gap-5 lg:grid-cols-2">
