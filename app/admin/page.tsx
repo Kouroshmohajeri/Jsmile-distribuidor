@@ -1,5 +1,6 @@
 import { UserButton } from "@clerk/nextjs";
 import { requireAdmin } from "@/lib/auth";
+
 import AdminSales from "./AdminSales";
 import UserManagement from "./UserManagement";
 
@@ -14,13 +15,16 @@ export default async function AdminPage() {
             <p className="text-[11px] font-bold uppercase tracking-[2.5px] text-[#c7ccdd]">
               jsmile.es
             </p>
+
             <h1 className="mt-1 text-2xl font-extrabold tracking-tight">
               Panel de Administración
             </h1>
+
             <p className="mt-2 text-sm text-[#c7ccdd]">
               Usuarios y estados individuales de ventas.
             </p>
           </div>
+
           <UserButton />
         </div>
       </header>
@@ -33,13 +37,17 @@ export default async function AdminPage() {
             <p className="text-[10px] font-extrabold uppercase tracking-[2px] text-[#8a7b4f]">
               Control de ventas
             </p>
+
             <h2 className="mt-1 text-2xl font-black tracking-tight">
               Ventas por distribuidor
             </h2>
+
             <p className="mt-1 text-sm text-[#777b87]">
-              Cambia el estado de cada venta individual.
+              Haz clic en un distribuidor para ver y modificar sus estados de
+              venta.
             </p>
           </div>
+
           <div className="mt-5">
             <AdminSales />
           </div>

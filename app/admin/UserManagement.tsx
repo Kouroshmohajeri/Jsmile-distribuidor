@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import CommissionSimulator from "./CommissionSimulator";
+import UserEditModal from "./UserEditModal";
 
 type UserRole = "distribuidor" | "admin";
 
 type ComisionModel = "A" | "B";
 
-type User = {
+export type User = {
   _id: string;
   clerkId?: string;
   email: string;
@@ -49,6 +50,8 @@ export default function UserManagement() {
   const [error, setError] = useState("");
 
   const [success, setSuccess] = useState("");
+
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   async function loadUsers() {
     try {
@@ -180,6 +183,10 @@ export default function UserManagement() {
 
       setUsers((current) => current.filter((item) => item._id !== user._id));
 
+      if (selectedUser?._id === user._id) {
+        setSelectedUser(null);
+      }
+
       setSuccess("Distribuidor eliminado correctamente.");
     } catch (err) {
       setError(
@@ -190,6 +197,19 @@ export default function UserManagement() {
     } finally {
       setDeletingId(null);
     }
+  }
+
+  function handleUserSaved(updatedUser: User) {
+    setUsers((current) =>
+      current.map((user) =>
+        user._id === updatedUser._id ? updatedUser : user,
+      ),
+    );
+
+    setSelectedUser(updatedUser);
+
+    setError("");
+    setSuccess("Usuario actualizado correctamente.");
   }
 
   return (
@@ -387,7 +407,7 @@ export default function UserManagement() {
             </h2>
 
             <p className="mt-1 text-sm text-[#777b87]">
-              Gestiona distribuidores y consulta su modelo de comisión.
+              Haz clic en un usuario para consultar y modificar sus datos.
             </p>
           </div>
 
@@ -415,10 +435,16 @@ export default function UserManagement() {
             {users.map((user) => (
               <div
                 key={user._id}
-                className="rounded-2xl border border-[#edf0f4] p-4"
+                className="rounded-2xl border border-[#edf0f4] p-4 transition hover:border-[#3a4a8f] hover:shadow-sm"
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="min-w-0">
+                  {/* USER DETAILS / CLICK TARGET */}
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedUser(user)}
+                    className="group min-w-0 flex-1 text-left"
+                  >
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-black text-[#11183c]">
                         {user.name}
@@ -448,7 +474,13 @@ export default function UserManagement() {
                     <p className="mt-1 text-[10px] text-[#9a9da7]">
                       Supervisor: {user.supervisor || "—"}
                     </p>
-                  </div>
+
+                    <p className="mt-2 text-[10px] font-extrabold text-[#3a4a8f] opacity-0 transition group-hover:opacity-100">
+                      Ver y editar usuario →
+                    </p>
+                  </button>
+
+                  {/* DELETE BUTTON — PRESERVED */}
 
                   {user.role !== "admin" && (
                     <button
@@ -466,6 +498,18 @@ export default function UserManagement() {
           </div>
         )}
       </section>
+
+      {/* ======================================================
+          USER EDIT MODAL
+      ======================================================= */}
+
+      {selectedUser && (
+        <UserEditModal
+          user={selectedUser}
+          onClose={() => setSelectedUser(null)}
+          onSaved={handleUserSaved}
+        />
+      )}
     </div>
   );
 }

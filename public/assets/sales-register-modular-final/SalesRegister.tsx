@@ -100,11 +100,15 @@ export default function SalesRegister({
         highestSavedIndexes.fibra,
       ) + extraBoxes.fibra,
     luz:
-      Math.max(targets.luz + rejectedCounts.luz, highestSavedIndexes.luz) +
-      extraBoxes.luz,
+      Math.max(
+        targets.luz + rejectedCounts.luz,
+        highestSavedIndexes.luz,
+      ) + extraBoxes.luz,
     gas:
-      Math.max(targets.gas + rejectedCounts.gas, highestSavedIndexes.gas) +
-      extraBoxes.gas,
+      Math.max(
+        targets.gas + rejectedCounts.gas,
+        highestSavedIndexes.gas,
+      ) + extraBoxes.gas,
   };
 
   const totalCurrent = counts.fibra + counts.luz + counts.gas;
@@ -326,7 +330,12 @@ export default function SalesRegister({
       ? draftItems.filter(
           (item) => !(item.category === key && item.index === index),
         )
-      : addSequentialDraftItems(draftItems, savedMonthlyItems, key, index);
+      : addSequentialDraftItems(
+          draftItems,
+          savedMonthlyItems,
+          key,
+          index,
+        );
 
     const sortedItems = sortItems(nextItems);
 
