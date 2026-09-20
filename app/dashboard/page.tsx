@@ -62,6 +62,12 @@ const platforms = [
     href: "https://www.seplec.com/comparador",
     type: "WEB",
   },
+  {
+    title: "Compartir",
+    description: "Compartir archivos mediante QR",
+    href: "/compartir",
+    type: "APP",
+  },
 ];
 
 function Arrow() {
@@ -330,31 +336,53 @@ export default async function DashboardPage() {
             />
 
             <div className="grid gap-2 sm:grid-cols-2">
-              {platforms.map((item) => (
-                <a
-                  key={item.title}
-                  href={item.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex min-h-[76px] items-center gap-3 rounded-2xl border border-[#eceef2] bg-[#fafbfc] p-3.5 transition duration-200 hover:-translate-y-0.5 hover:border-[#cdd2e3] hover:bg-white hover:shadow-md"
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef0f8] text-[#1b2559]">
-                    <PlatformIcon />
-                  </div>
+              {platforms.map((item) => {
+                const isInternal = item.href.startsWith("/");
 
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-extrabold">
-                      {item.title}
-                    </p>
+                const content = (
+                  <>
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#eef0f8] text-[#1b2559]">
+                      <PlatformIcon />
+                    </div>
 
-                    <p className="truncate text-xs text-[#858995]">
-                      {item.description}
-                    </p>
-                  </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-extrabold">
+                        {item.title}
+                      </p>
 
-                  <Arrow />
-                </a>
-              ))}
+                      <p className="truncate text-xs text-[#858995]">
+                        {item.description}
+                      </p>
+                    </div>
+
+                    <Arrow />
+                  </>
+                );
+
+                if (isInternal) {
+                  return (
+                    <Link
+                      key={item.title}
+                      href={item.href}
+                      className="group flex min-h-[76px] items-center gap-3 rounded-2xl border border-[#eceef2] bg-[#fafbfc] p-3.5 transition duration-200 hover:-translate-y-0.5 hover:border-[#cdd2e3] hover:bg-white hover:shadow-md"
+                    >
+                      {content}
+                    </Link>
+                  );
+                }
+
+                return (
+                  <a
+                    key={item.title}
+                    href={item.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex min-h-[76px] items-center gap-3 rounded-2xl border border-[#eceef2] bg-[#fafbfc] p-3.5 transition duration-200 hover:-translate-y-0.5 hover:border-[#cdd2e3] hover:bg-white hover:shadow-md"
+                  >
+                    {content}
+                  </a>
+                );
+              })}
             </div>
           </section>
         </div>

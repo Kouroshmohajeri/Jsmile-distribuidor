@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { requireUser } from "@/lib/auth";
+import { requireAdmin, requireUser } from "@/lib/auth";
 import { dbConnect } from "@/lib/mongodb";
 import SalesEntry, { SaleCategory, SaleStatus } from "@/lib/models/SalesEntry";
 
@@ -111,21 +111,33 @@ function normalizedEntry(entry: any) {
 }
 
 export async function GET() {
-  const user = await requireUser();
+  // Admin can see sales from all distributors.
+  await requireAdmin();
   await dbConnect();
 
-  const entries = await SalesEntry.find({
-    $or: [{ userId: user.clerkId }, { userEmail: user.email }],
-  })
+  const entries = await SalesEntry.find({})
     .sort({ updatedAt: -1, createdAt: -1 })
     .lean();
 
-  // The unique index is userEmail + monthKey. If legacy data has the same
-  // month under different userIds, return only the newest record per month.
-  const seenMonths = new Set<string>();
+  // Keep only the newest record per month/user combination.
+  // This preserves protection against legacy duplicate monthly records
+  // without hiding different distributors who have the same month.
+  const seen = new Set<string>();
+
   const uniqueEntries = entries.filter((entry: any) => {
-    if (seenMonths.has(entry.monthKey)) return false;
-    seenMonths.add(entry.monthKey);
+    const userKey =
+      String(entry.userId || "").trim() ||
+      String(entry.userEmail || "")
+        .trim()
+        .toLowerCase();
+
+    const key = `${userKey}:${entry.monthKey}`;
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
     return true;
   });
 
