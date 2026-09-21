@@ -68,6 +68,12 @@ const platforms = [
     href: "/compartir",
     type: "APP",
   },
+  {
+    title: "IBERDROLA",
+    description: "Comparativa de tarifas",
+    href: "/comparativa",
+    type: "APP",
+  },
 ];
 
 function Arrow() {

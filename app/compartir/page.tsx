@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
 import { useRouter } from "next/navigation";
 
 import QRCode from "qrcode";
@@ -14,6 +15,50 @@ export default function CompartirPage() {
   const [shareUrl, setShareUrl] = useState("");
   const [qr, setQr] = useState("");
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
+  const [isSnapshot, setIsSnapshot] = useState(false);
+  const [snapshotPreview, setSnapshotPreview] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSnapshot() {
+      const dataUrl = sessionStorage.getItem("jsmile_share_snapshot");
+
+      if (!dataUrl) {
+        return;
+      }
+
+      try {
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+
+        if (cancelled) {
+          return;
+        }
+
+        const snapshotFile = new File([blob], "comparativa-iberdrola.jpg", {
+          type: "image/jpeg",
+        });
+
+        setFile(snapshotFile);
+        setSnapshotPreview(dataUrl);
+        setIsSnapshot(true);
+
+        // The snapshot only needs to survive the hand-off to this page.
+        sessionStorage.removeItem("jsmile_share_snapshot");
+      } catch {
+        if (!cancelled) {
+          setError("No se ha podido cargar el snapshot.");
+        }
+      }
+    }
+
+    void loadSnapshot();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function handleBack() {
     if (window.history.length > 1) {
@@ -88,6 +133,8 @@ export default function CompartirPage() {
     setQr("");
     setExpiresAt(null);
     setError("");
+    setIsSnapshot(false);
+    setSnapshotPreview("");
   }
 
   return (
@@ -127,41 +174,95 @@ export default function CompartirPage() {
 
           {!shareUrl ? (
             <div className="mt-8">
-              <label
-                htmlFor="file"
-                className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-10 text-center transition hover:border-gray-500"
-              >
-                <div className="text-4xl">📤</div>
+              {isSnapshot ? (
+                <div className="rounded-2xl border border-[#e4e6ec] bg-[#fafbfc] p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef0f8] text-[#11183c]">
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M4 16l4.5-4.5a2 2 0 012.8 0L14 14l2.2-2.2a2 2 0 012.8 0L21 14"
+                        />
+                        <rect x="3" y="4" width="18" height="16" rx="2" />
+                      </svg>
+                    </div>
 
-                <div className="mt-3 font-medium text-gray-900">
-                  Seleccionar imagen
-                </div>
-
-                <div className="mt-1 text-sm text-gray-500">
-                  JPG, PNG, WEBP o GIF · Máximo 25 MB
-                </div>
-
-                <input
-                  id="file"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="hidden"
-                  onChange={(event) => {
-                    const selected = event.target.files?.[0] ?? null;
-                    setFile(selected);
-                    setError("");
-                  }}
-                />
-              </label>
-
-              {file && (
-                <div className="mt-4 rounded-xl bg-gray-50 p-4">
-                  <div className="font-medium text-gray-900">{file.name}</div>
-
-                  <div className="mt-1 text-sm text-gray-500">
-                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                    <div>
+                      <div className="font-semibold text-gray-900">
+                        Snapshot de la comparativa
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Todas las ofertas y precios calculados.
+                      </div>
+                    </div>
                   </div>
+
+                  {snapshotPreview && (
+                    <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
+                      <img
+                        src={snapshotPreview}
+                        alt="Vista previa del snapshot de la comparativa"
+                        className="block h-auto max-h-[520px] w-full object-contain"
+                      />
+                    </div>
+                  )}
+
+                  {file && (
+                    <div className="mt-4 text-sm text-gray-500">
+                      {file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB
+                    </div>
+                  )}
                 </div>
+              ) : (
+                <>
+                  <label
+                    htmlFor="file"
+                    className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-10 text-center transition hover:border-gray-500"
+                  >
+                    <div className="text-4xl">📤</div>
+
+                    <div className="mt-3 font-medium text-gray-900">
+                      Seleccionar imagen
+                    </div>
+
+                    <div className="mt-1 text-sm text-gray-500">
+                      JPG, PNG, WEBP o GIF · Máximo 25 MB
+                    </div>
+
+                    <input
+                      id="file"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                      onChange={(event) => {
+                        const selected = event.target.files?.[0] ?? null;
+                        setFile(selected);
+                        setSnapshotPreview("");
+                        setIsSnapshot(false);
+                        setError("");
+                      }}
+                    />
+                  </label>
+
+                  {file && (
+                    <div className="mt-4 rounded-xl bg-gray-50 p-4">
+                      <div className="font-medium text-gray-900">
+                        {file.name}
+                      </div>
+
+                      <div className="mt-1 text-sm text-gray-500">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               {error && (
@@ -178,6 +279,17 @@ export default function CompartirPage() {
               >
                 {uploading ? "Subiendo..." : "Subir y generar QR"}
               </button>
+
+              {isSnapshot && (
+                <button
+                  type="button"
+                  onClick={reset}
+                  disabled={uploading}
+                  className="mt-3 w-full rounded-xl border border-gray-300 px-5 py-3 font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Elegir otra imagen
+                </button>
+              )}
             </div>
           ) : (
             <div className="mt-8 text-center">
