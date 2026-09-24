@@ -29,6 +29,18 @@ const documents = [
     href: "/assets/PromocionO2.JPG",
     type: "VER",
   },
+  {
+    title: "Comparativa",
+    description: "Documento comparativo",
+    href: "/assets/comparativa.pdf",
+    type: "PDF",
+  },
+  {
+    title: "Plataformas",
+    description: "Documento de plataformas",
+    href: "/assets/plataformas.pdf",
+    type: "PDF",
+  },
 ];
 
 const platforms = [
