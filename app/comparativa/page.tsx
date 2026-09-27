@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { IBERDROLA_OFFERS } from "@/lib/offers";
 import {
   calculateAllOffers,
   type ComparadorInput,
   type OfferResult,
 } from "@/lib/calculator";
+import InvoiceImporter from "../components/InvoiceImporter";
 
 function Field({
   label,
@@ -17,6 +18,7 @@ function Field({
   suffix,
   min = 0,
   step = "0.01",
+  dataAiKey,
 }: {
   label: string;
   value: string;
@@ -24,9 +26,13 @@ function Field({
   suffix?: string;
   min?: number;
   step?: string;
+  dataAiKey?: string;
 }) {
   return (
-    <label className="block">
+    <label
+      data-ai-key={dataAiKey}
+      className="block transition-all duration-300"
+    >
       <span className="mb-2 block text-sm font-semibold text-[#12141c]">
         {label}
       </span>
@@ -83,7 +89,10 @@ type OfferHighlight = {
 function getOfferHighlight(offerName: string): OfferHighlight | null {
   const name = offerName.toLowerCase().replace(/\s+/g, " ").trim();
 
-  if (name.includes("tranquilidad plus")) {
+  if (
+    name.includes("tranquilidad plus") ||
+    name.includes("supertranquilidad")
+  ) {
     return {
       background: "#EAF2FB",
       border: "#BBD2EA",
@@ -92,7 +101,11 @@ function getOfferHighlight(offerName: string): OfferHighlight | null {
     };
   }
 
-  if (name.includes("impulso 24horas") || name.includes("impulso 24 horas")) {
+  if (
+    name.includes("impulsa 24horas") ||
+    name.includes("impulsa 24 horas") ||
+    name.includes("impulsa 24h")
+  ) {
     return {
       background: "#FFF9DF",
       border: "#E9DDA5",
@@ -101,7 +114,10 @@ function getOfferHighlight(offerName: string): OfferHighlight | null {
     };
   }
 
-  if (name.includes("ahorro inteligente")) {
+  if (
+    name.includes("ahorro inteligente") ||
+    name.includes("inteligente 8 horas")
+  ) {
     return {
       background: "#EAF6EC",
       border: "#B9DDBF",
@@ -116,19 +132,53 @@ function getOfferHighlight(offerName: string): OfferHighlight | null {
 function getOfferPriority(offerName: string): number {
   const name = offerName.toLowerCase().replace(/\s+/g, " ").trim();
 
-  if (name.includes("tranquilidad plus")) {
+  if (
+    name.includes("ahorro inteligente") ||
+    name.includes("inteligente 8 horas")
+  ) {
     return 1;
   }
 
-  if (name.includes("impulso 24horas") || name.includes("impulso 24 horas")) {
+  if (
+    name.includes("impulso 24horas") ||
+    name.includes("impulso 24 horas") ||
+    name.includes("impulso 24h") ||
+    name.includes("impulsa 24horas") ||
+    name.includes("impulsa 24 horas") ||
+    name.includes("impulsa 24h")
+  ) {
     return 2;
   }
 
-  if (name.includes("ahorro inteligente")) {
+  if (
+    name.includes("tranquilidad plus") ||
+    name.includes("supertranquilidad")
+  ) {
     return 3;
   }
 
   return 100;
+}
+
+function getDisplayOfferName(offerName: string): string {
+  const name = offerName.toLowerCase().replace(/\s+/g, " ").trim();
+
+  if (name.includes("ahorro inteligente") && name.includes("8 horas")) {
+    return "Inteligente 8 horas";
+  }
+
+  if (name.includes("impulso 24horas") || name.includes("impulso 24 horas")) {
+    return "Impulso 24h";
+  }
+
+  if (
+    name.includes("tranquilidad plus") ||
+    name.includes("supertranquilidad")
+  ) {
+    return "Supertranquilidad";
+  }
+
+  return offerName;
 }
 
 function OfferIcon({ offerName }: { offerName: string }) {
@@ -243,8 +293,84 @@ export default function ComparativaPage() {
   const [submitted, setSubmitted] = useState(false);
 
   const [selectedOffer, setSelectedOffer] = useState<OfferResult | null>(null);
+  const [selectedSnapshotOffers, setSelectedSnapshotOffers] = useState<
+    string[]
+  >([]);
   const [creatingSnapshot, setCreatingSnapshot] = useState(false);
   const [snapshotError, setSnapshotError] = useState("");
+
+  const [aiFilling, setAiFilling] = useState(false);
+  const [aiFilledKeys, setAiFilledKeys] = useState<string[]>([]);
+  const [aiMessage, setAiMessage] = useState("Analizando tu factura...");
+  const aiTimers = useRef<number[]>([]);
+
+  const clearAiTimers = () => {
+    aiTimers.current.forEach((timer) => window.clearTimeout(timer));
+    aiTimers.current = [];
+  };
+
+  useEffect(() => () => clearAiTimers(), []);
+
+  const runAiFillAnimation = (fields: Record<string, string>) => {
+    clearAiTimers();
+    const order = [
+      "potenciaP1",
+      "potenciaP2",
+      "consumoP1",
+      "consumoP2",
+      "consumoP3",
+      "perfilP1",
+      "perfilP2",
+      "perfilP3",
+      "iva",
+      "ie",
+      "diasFactura",
+      "totalFacturaActual",
+      "reactivaBonoSocial",
+      "otrosConceptos",
+      "alquilerEquipo",
+    ];
+    const keys = order.filter(
+      (key) =>
+        fields[key] !== undefined && fields[key] !== null && fields[key] !== "",
+    );
+    setAiFilling(true);
+    setAiFilledKeys([]);
+    setAiMessage("Analizando tu factura...");
+
+    keys.forEach((key, index) => {
+      const timer = window.setTimeout(
+        () => {
+          setForm((current) => ({ ...current, [key]: String(fields[key]) }));
+          setAiFilledKeys((current) => [...current, key]);
+          if (index < Math.ceil(keys.length * 0.45))
+            setAiMessage("Identificando datos de la factura...");
+          else if (index < Math.ceil(keys.length * 0.82))
+            setAiMessage("Comprobando consumos e importes...");
+          else setAiMessage("Verificando los últimos campos...");
+          if (index === keys.length - 1) {
+            const finishTimer = window.setTimeout(() => {
+              setAiMessage("Factura procesada correctamente");
+              setAiFilling(false);
+            }, 650);
+            aiTimers.current.push(finishTimer);
+          }
+        },
+        450 + index * 115,
+      );
+      aiTimers.current.push(timer);
+    });
+  };
+
+  useEffect(() => {
+    document
+      .querySelectorAll<HTMLElement>("[data-ai-key]")
+      .forEach((element) => {
+        const key = element.dataset.aiKey;
+        element.dataset.aiFilled =
+          key && aiFilledKeys.includes(key) ? "true" : "false";
+      });
+  }, [aiFilledKeys]);
 
   const update = (key: string, value: string) => {
     setForm((current) => ({
@@ -383,6 +509,19 @@ export default function ComparativaPage() {
     const snapshotInput = parsed;
     const snapshotTariff = tariff ?? "2.0TD";
 
+    // If the user has selected specific plans, share only those plans.
+    // If nothing is selected, fall back to the first three highlighted plans.
+    const snapshotResults =
+      selectedSnapshotOffers.length > 0
+        ? results.filter((result) =>
+            selectedSnapshotOffers.includes(result.offerName),
+          )
+        : results.slice(0, 3);
+
+    if (snapshotResults.length === 0) {
+      return;
+    }
+
     setCreatingSnapshot(true);
     setSnapshotError("");
 
@@ -397,7 +536,8 @@ export default function ComparativaPage() {
       const rowHeight = 62;
       const footerHeight = 42;
       const tableGap = 14;
-      const tableRowsHeight = tableHeaderHeight + results.length * rowHeight;
+      const tableRowsHeight =
+        tableHeaderHeight + snapshotResults.length * rowHeight;
       const canvasHeight =
         padding +
         headerHeight +
@@ -548,7 +688,7 @@ export default function ComparativaPage() {
         "#858995",
       );
 
-      results.forEach((result, index) => {
+      snapshotResults.forEach((result, index) => {
         const y = tableY + tableHeaderHeight + index * rowHeight;
         const isTranquilidad = result.offerName
           .toLowerCase()
@@ -592,7 +732,7 @@ export default function ComparativaPage() {
 
         // 2. Plan name — always visible.
         drawText(
-          result.offerName,
+          getDisplayOfferName(result.offerName),
           colX[1] + 16,
           y + rowHeight / 2,
           "700 15px Arial, sans-serif",
@@ -639,6 +779,10 @@ export default function ComparativaPage() {
 
       try {
         sessionStorage.setItem("jsmile_share_snapshot", dataUrl);
+        sessionStorage.setItem(
+          "jsmile_share_selected_offers",
+          JSON.stringify(snapshotResults.map((result) => result.offerName)),
+        );
       } catch {
         sessionStorage.setItem(
           "jsmile_share_snapshot",
@@ -657,7 +801,67 @@ export default function ComparativaPage() {
 
   return (
     <>
-      <main className="min-h-screen bg-[#f5f6f9] px-4 py-8 text-[#12141c] sm:px-6">
+      <main
+        className={`relative min-h-screen overflow-hidden bg-[#f5f6f9] px-4 py-8 text-[#12141c] sm:px-6 ${
+          aiFilling ? "ai-filling-page" : ""
+        }`}
+      >
+        {aiFilling && (
+          <>
+            {/* Full-screen AI overlay */}
+            <div className="fixed inset-0 z-40 bg-white/60 backdrop-blur-md" />
+
+            {/* Progress bar */}
+            <div className="pointer-events-none fixed inset-x-0 top-0 z-50 h-1 overflow-hidden bg-[#e8eaf0]">
+              <div className="ai-progress-bar h-full rounded-full bg-[#11183c]" />
+            </div>
+
+            {/* AI reviewing card */}
+            <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-6">
+              <div className="w-full max-w-sm rounded-3xl border border-[#e4e6ec] bg-white px-6 py-7 text-center shadow-[0_30px_100px_rgba(18,20,28,.16)]">
+                {/* LOTTIE */}
+                <div className="mx-auto h-44 w-44">
+                  <DotLottieReact
+                    src="https://lottie.host/6690e4d4-cfa1-4cc4-a69f-26f59a67a894/Aaae80lNoL.lottie"
+                    loop
+                    autoplay
+                  />
+                </div>
+
+                {/* AI title */}
+                <div className="-mt-2 flex items-center justify-center gap-2">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#11183c] text-xs text-white">
+                    ✦
+                  </span>
+
+                  <p className="text-lg font-extrabold text-[#12141c]">
+                    Estamos revisando tu factura
+                  </p>
+                </div>
+
+                {/* Dynamic status */}
+                <p className="mt-2 text-sm leading-5 text-[#777b87]">
+                  {aiMessage}
+                </p>
+
+                {/* Fields counter */}
+                <div className="mx-auto mt-5 flex w-fit items-center gap-2 rounded-full bg-[#f5f6f9] px-3 py-1.5 text-xs font-bold text-[#5b5f6b]">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#11183c]" />
+
+                  {aiFilledKeys.length > 0
+                    ? `${aiFilledKeys.length} datos identificados`
+                    : "Analizando factura..."}
+                </div>
+
+                {/* Small explanation */}
+                <p className="mt-4 text-[11px] leading-5 text-[#989ba5]">
+                  La IA está leyendo y colocando los datos de tu factura
+                  automáticamente.
+                </p>
+              </div>
+            </div>
+          </>
+        )}
         <div className="mx-auto max-w-6xl">
           {/* BACK */}
           <button
@@ -703,8 +907,19 @@ export default function ComparativaPage() {
             </p>
           </div>
 
+          {/* PDF IMPORT */}
+          <InvoiceImporter
+            onExtracted={(fields) => {
+              setSubmitted(false);
+              setSelectedOffer(null);
+              runAiFillAnimation(fields as Record<string, string>);
+            }}
+          />
+
           {/* FORM */}
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div
+            className={`mt-5 grid gap-5 lg:grid-cols-2 transition-all duration-700 ${aiFilling ? "ai-form-active" : ""}`}
+          >
             {/* POTENCIA */}
             <Section
               title="Potencia contratada"
@@ -712,6 +927,7 @@ export default function ComparativaPage() {
             >
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
+                  dataAiKey="potenciaP1"
                   label="Potencia P1"
                   value={form.potenciaP1}
                   onChange={(value) => update("potenciaP1", value)}
@@ -719,6 +935,7 @@ export default function ComparativaPage() {
                 />
 
                 <Field
+                  dataAiKey="potenciaP2"
                   label="Potencia P2"
                   value={form.potenciaP2}
                   onChange={(value) => update("potenciaP2", value)}
@@ -755,6 +972,7 @@ export default function ComparativaPage() {
             >
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
+                  dataAiKey="iva"
                   label="IVA / IGIC"
                   value={form.iva}
                   onChange={(value) => update("iva", value)}
@@ -762,6 +980,7 @@ export default function ComparativaPage() {
                 />
 
                 <Field
+                  dataAiKey="ie"
                   label="Impuesto eléctrico (IE)"
                   value={form.ie}
                   onChange={(value) => update("ie", value)}
@@ -777,6 +996,7 @@ export default function ComparativaPage() {
             >
               <div className="grid gap-4 sm:grid-cols-3">
                 <Field
+                  dataAiKey="consumoP1"
                   label="Consumo P1"
                   value={form.consumoP1}
                   onChange={(value) => update("consumoP1", value)}
@@ -784,6 +1004,7 @@ export default function ComparativaPage() {
                 />
 
                 <Field
+                  dataAiKey="consumoP2"
                   label="Consumo P2"
                   value={form.consumoP2}
                   onChange={(value) => update("consumoP2", value)}
@@ -791,6 +1012,7 @@ export default function ComparativaPage() {
                 />
 
                 <Field
+                  dataAiKey="consumoP3"
                   label="Consumo P3"
                   value={form.consumoP3}
                   onChange={(value) => update("consumoP3", value)}
@@ -807,8 +1029,8 @@ export default function ComparativaPage() {
                     </p>
 
                     <p className="mt-1 text-xs leading-5 text-[#858995]">
-                      Distribuye el consumo entre los periodos. El total debe
-                      ser 100%.
+                      Se calcula a partir del consumo extraído. Puedes revisarlo
+                      o editarlo. El total debe ser 100%.
                     </p>
                   </div>
 
@@ -819,53 +1041,33 @@ export default function ComparativaPage() {
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-3">
                   <Field
+                    dataAiKey="perfilP1"
                     label="P1"
                     value={form.perfilP1}
-                    onChange={(value) => {
-                      const p1 = Math.min(100, Math.max(0, Number(value) || 0));
-                      setForm((current) => ({
-                        ...current,
-                        perfilP1: String(p1),
-                        perfilP2: String(100 - p1),
-                        perfilP3: "0",
-                      }));
-                      setSubmitted(false);
-                    }}
+                    onChange={(value) => update("perfilP1", value)}
                     suffix="%"
                     min={0}
-                    step="1"
+                    step="0.01"
                   />
 
                   <Field
+                    dataAiKey="perfilP2"
                     label="P2"
                     value={form.perfilP2}
-                    onChange={(value) => {
-                      const p2 = Math.min(100, Math.max(0, Number(value) || 0));
-                      setForm((current) => ({
-                        ...current,
-                        perfilP1: String(100 - p2),
-                        perfilP2: String(p2),
-                        perfilP3: "0",
-                      }));
-                      setSubmitted(false);
-                    }}
+                    onChange={(value) => update("perfilP2", value)}
                     suffix="%"
                     min={0}
-                    step="1"
+                    step="0.01"
                   />
 
                   <Field
+                    dataAiKey="perfilP3"
                     label="P3"
-                    value="0"
-                    onChange={() => {
-                      setForm((current) => ({
-                        ...current,
-                        perfilP3: "0",
-                      }));
-                    }}
+                    value={form.perfilP3}
+                    onChange={(value) => update("perfilP3", value)}
                     suffix="%"
                     min={0}
-                    step="1"
+                    step="0.01"
                   />
                 </div>
 
@@ -896,6 +1098,7 @@ export default function ComparativaPage() {
             >
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
+                  dataAiKey="diasFactura"
                   label="Días de factura"
                   value={form.diasFactura}
                   onChange={(value) => update("diasFactura", value)}
@@ -904,6 +1107,7 @@ export default function ComparativaPage() {
                 />
 
                 <Field
+                  dataAiKey="totalFacturaActual"
                   label="Total factura actual"
                   value={form.totalFacturaActual}
                   onChange={(value) => update("totalFacturaActual", value)}
@@ -911,6 +1115,7 @@ export default function ComparativaPage() {
                 />
 
                 <Field
+                  dataAiKey="reactivaBonoSocial"
                   label="Reactiva + Bono Social"
                   value={form.reactivaBonoSocial}
                   onChange={(value) => update("reactivaBonoSocial", value)}
@@ -918,6 +1123,7 @@ export default function ComparativaPage() {
                 />
 
                 <Field
+                  dataAiKey="otrosConceptos"
                   label="Otros conceptos"
                   value={form.otrosConceptos}
                   onChange={(value) => update("otrosConceptos", value)}
@@ -925,6 +1131,7 @@ export default function ComparativaPage() {
                 />
 
                 <Field
+                  dataAiKey="alquilerEquipo"
                   label="Alquiler de equipo"
                   value={form.alquilerEquipo}
                   onChange={(value) => update("alquilerEquipo", value)}
@@ -1009,7 +1216,7 @@ export default function ComparativaPage() {
 
                             <div className="min-w-0">
                               <p className="line-clamp-2 text-base font-extrabold leading-5 text-[#12141c]">
-                                {result.offerName}
+                                {getDisplayOfferName(result.offerName)}
                               </p>
 
                               {highlight && (
@@ -1100,7 +1307,61 @@ export default function ComparativaPage() {
               </div>
 
               <div className="mt-6 rounded-3xl border border-[#e4e6ec] bg-white p-4 shadow-[0_8px_25px_rgba(18,20,28,.045)] sm:p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mb-4">
+                  <p className="font-extrabold text-[#12141c]">
+                    ¿Qué planes quieres compartir?
+                  </p>
+                  <p className="mt-1 text-sm leading-5 text-[#777b87]">
+                    Selecciona uno o varios planes. Si no seleccionas ninguno,
+                    se compartirán automáticamente los tres planes destacados.
+                  </p>
+                </div>
+
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {results.map((result) => {
+                    const isSelected = selectedSnapshotOffers.includes(
+                      result.offerName,
+                    );
+                    const highlight = getOfferHighlight(result.offerName);
+
+                    return (
+                      <label
+                        key={result.offerName}
+                        className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-3 transition ${
+                          isSelected
+                            ? "border-[#11183c] bg-[#f5f6fb] shadow-sm"
+                            : "border-[#e4e6ec] bg-white hover:border-[#cdd1dc]"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            setSelectedSnapshotOffers((current) =>
+                              current.includes(result.offerName)
+                                ? current.filter(
+                                    (name) => name !== result.offerName,
+                                  )
+                                : [...current, result.offerName],
+                            );
+                          }}
+                          className="h-4 w-4 accent-[#11183c]"
+                        />
+                        <span
+                          className="h-2.5 w-2.5 shrink-0 rounded-full"
+                          style={{
+                            backgroundColor: highlight?.accent ?? "#98a0ad",
+                          }}
+                        />
+                        <span className="min-w-0 flex-1 text-sm font-bold text-[#12141c]">
+                          {getDisplayOfferName(result.offerName)}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-extrabold text-[#12141c]">
                       Compartir comparativa
@@ -1264,7 +1525,7 @@ export default function ComparativaPage() {
                           id="offer-modal-title"
                           className="mt-1 text-2xl font-black tracking-tight text-[#12141c]"
                         >
-                          {selectedOffer.offerName}
+                          {getDisplayOfferName(selectedOffer.offerName)}
                         </h2>
 
                         {selectedOffer.duration && (
@@ -1519,6 +1780,107 @@ export default function ComparativaPage() {
           </div>
         </div>
       )}
+      <style jsx global>{`
+        @keyframes aiProgress {
+          0% {
+            transform: translateX(-120%);
+          }
+          100% {
+            transform: translateX(260%);
+          }
+        }
+        @keyframes aiOrb {
+          0%,
+          100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(17, 24, 60, 0.14);
+          }
+          50% {
+            transform: scale(1.08);
+            box-shadow: 0 0 0 7px rgba(17, 24, 60, 0);
+          }
+        }
+        @keyframes aiFieldIn {
+          0% {
+            opacity: 0.55;
+            transform: translateY(5px) scale(0.985);
+            box-shadow: 0 0 0 0 rgba(27, 37, 89, 0);
+          }
+          35% {
+            opacity: 1;
+            transform: translateY(0) scale(1.012);
+            box-shadow:
+              0 0 0 4px rgba(27, 37, 89, 0.1),
+              0 10px 28px rgba(27, 37, 89, 0.1);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            box-shadow:
+              0 0 0 0 rgba(27, 37, 89, 0),
+              0 2px 10px rgba(27, 37, 89, 0.035);
+          }
+        }
+        @keyframes aiInputShine {
+          0% {
+            background-position: 120% 0;
+          }
+          100% {
+            background-position: 0% 0;
+          }
+        }
+        @keyframes aiSectionGlow {
+          0%,
+          100% {
+            box-shadow: 0 12px 35px rgba(18, 20, 28, 0.055);
+          }
+          50% {
+            box-shadow: 0 18px 50px rgba(27, 37, 89, 0.1);
+          }
+        }
+        @keyframes aiStatusIn {
+          from {
+            opacity: 0;
+            transform: translateY(-7px) scale(0.97);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        .ai-progress-bar {
+          width: 42%;
+          animation: aiProgress 1.25s ease-in-out infinite;
+        }
+        .ai-orb {
+          animation: aiOrb 1.35s ease-in-out infinite;
+        }
+        .ai-status-pill {
+          animation: aiStatusIn 0.35s ease-out both;
+        }
+        .ai-form-active > section {
+          animation: aiSectionGlow 1.8s ease-in-out infinite;
+        }
+        [data-ai-key][data-ai-filled="true"] {
+          animation: aiFieldIn 0.62s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+        [data-ai-key][data-ai-filled="true"] input {
+          border-color: rgba(27, 37, 89, 0.28);
+          background: linear-gradient(90deg, #fff, #f8f9ff, #fff);
+          background-size: 220% 100%;
+          animation: aiInputShine 1.1s ease-out both;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .ai-progress-bar,
+          .ai-orb,
+          .ai-status-pill,
+          .ai-form-active > section,
+          [data-ai-key][data-ai-filled="true"],
+          [data-ai-key][data-ai-filled="true"] input {
+            animation: none !important;
+          }
+        }
+      `}</style>
     </>
   );
 }

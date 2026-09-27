@@ -17,6 +17,7 @@ export default function CompartirPage() {
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [isSnapshot, setIsSnapshot] = useState(false);
   const [snapshotPreview, setSnapshotPreview] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,12 +61,51 @@ export default function CompartirPage() {
     };
   }, []);
 
+  function acceptDroppedFile(selected: File | null) {
+    if (!selected) return;
+    if (!selected.type.startsWith("image/")) {
+      setError("Solo se pueden subir imágenes.");
+      return;
+    }
+    if (selected.size > 25 * 1024 * 1024) {
+      setError("La imagen no puede superar los 25 MB.");
+      return;
+    }
+    setFile(selected);
+    setSnapshotPreview("");
+    setIsSnapshot(false);
+    setShareUrl("");
+    setQr("");
+    setExpiresAt(null);
+    setError("");
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDragging(false);
+    acceptDroppedFile(event.dataTransfer.files?.[0] ?? null);
+  }
+
   function handleBack() {
     if (window.history.length > 1) {
       router.back();
     } else {
       router.push("/");
     }
+  }
+
+  function handleDirectDownload() {
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = file.name || "comparativa-iberdrola.jpg";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   async function handleUpload() {
@@ -138,8 +178,34 @@ export default function CompartirPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 px-6 py-12">
-      <div className="mx-auto max-w-xl">
+    <main
+      className={`min-h-screen bg-[#f5f6f9] px-4 py-5 sm:px-6 sm:py-8 lg:px-8 ${
+        isDragging ? "bg-[#eef0f8]" : ""
+      }`}
+      onDragEnter={(event) => {
+        event.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragOver={(event) => event.preventDefault()}
+      onDragLeave={(event) => {
+        if (event.currentTarget === event.target) setIsDragging(false);
+      }}
+      onDrop={handleDrop}
+    >
+      {isDragging && (
+        <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-[#11183c]/10 p-6">
+          <div className="rounded-3xl border-2 border-dashed border-[#11183c] bg-white px-10 py-12 text-center shadow-2xl">
+            <div className="text-4xl">📤</div>
+            <div className="mt-3 text-lg font-bold text-[#11183c]">
+              Suelta la imagen aquí
+            </div>
+            <div className="mt-1 text-sm text-gray-500">
+              JPG, PNG, WEBP o GIF · Máximo 25 MB
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="mx-auto w-full max-w-6xl">
         <div className="mb-4">
           <button
             type="button"
@@ -163,174 +229,212 @@ export default function CompartirPage() {
           </button>
         </div>
 
-        <div className="rounded-2xl bg-white p-8 shadow-sm">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Compartir archivo
-          </h1>
+        <div className="overflow-hidden rounded-3xl bg-white shadow-[0_18px_60px_rgba(18,20,28,.08)] lg:p-2">
+          <div className="rounded-[1.35rem] bg-white p-5 sm:p-7 lg:p-8">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Compartir archivo
+            </h1>
 
-          <p className="mt-2 text-gray-600">
-            Sube una imagen y escanea el código QR desde tu móvil.
-          </p>
+            <p className="mt-2 text-gray-600">
+              Sube una imagen y escanea el código QR desde tu móvil.
+            </p>
 
-          {!shareUrl ? (
-            <div className="mt-8">
-              {isSnapshot ? (
-                <div className="rounded-2xl border border-[#e4e6ec] bg-[#fafbfc] p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef0f8] text-[#11183c]">
-                      <svg
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M4 16l4.5-4.5a2 2 0 012.8 0L14 14l2.2-2.2a2 2 0 012.8 0L21 14"
+            {!shareUrl ? (
+              <div className="mt-8">
+                {isSnapshot ? (
+                  <div className="rounded-2xl border border-[#e4e6ec] bg-[#fafbfc] p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#eef0f8] text-[#11183c]">
+                        <svg
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M4 16l4.5-4.5a2 2 0 012.8 0L14 14l2.2-2.2a2 2 0 012.8 0L21 14"
+                          />
+                          <rect x="3" y="4" width="18" height="16" rx="2" />
+                        </svg>
+                      </div>
+
+                      <div>
+                        <div className="font-semibold text-gray-900">
+                          Snapshot de la comparativa
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Imagen lista para descargar o compartir.
+                        </div>
+                      </div>
+                    </div>
+
+                    {snapshotPreview && (
+                      <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
+                        <img
+                          src={snapshotPreview}
+                          alt="Vista previa del snapshot de la comparativa"
+                          className="block h-auto max-h-[520px] w-full object-contain"
                         />
-                        <rect x="3" y="4" width="18" height="16" rx="2" />
-                      </svg>
-                    </div>
+                      </div>
+                    )}
 
-                    <div>
-                      <div className="font-semibold text-gray-900">
-                        Snapshot de la comparativa
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Todas las ofertas y precios calculados.
-                      </div>
-                    </div>
+                    {file && (
+                      <>
+                        <div className="mt-4 text-sm text-gray-500">
+                          {file.name} · {(file.size / 1024 / 1024).toFixed(2)}{" "}
+                          MB
+                        </div>
+                      </>
+                    )}
                   </div>
+                ) : (
+                  <>
+                    <label
+                      htmlFor="file"
+                      className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-8 text-center transition sm:p-12 ${isDragging ? "border-[#11183c] bg-[#f4f5fa]" : "border-gray-300 hover:border-[#11183c] hover:bg-[#fafbfc]"}`}
+                    >
+                      <div className="text-4xl">📤</div>
 
-                  {snapshotPreview && (
-                    <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 bg-white">
-                      <img
-                        src={snapshotPreview}
-                        alt="Vista previa del snapshot de la comparativa"
-                        className="block h-auto max-h-[520px] w-full object-contain"
-                      />
-                    </div>
-                  )}
-
-                  {file && (
-                    <div className="mt-4 text-sm text-gray-500">
-                      {file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <label
-                    htmlFor="file"
-                    className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-10 text-center transition hover:border-gray-500"
-                  >
-                    <div className="text-4xl">📤</div>
-
-                    <div className="mt-3 font-medium text-gray-900">
-                      Seleccionar imagen
-                    </div>
-
-                    <div className="mt-1 text-sm text-gray-500">
-                      JPG, PNG, WEBP o GIF · Máximo 25 MB
-                    </div>
-
-                    <input
-                      id="file"
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      className="hidden"
-                      onChange={(event) => {
-                        const selected = event.target.files?.[0] ?? null;
-                        setFile(selected);
-                        setSnapshotPreview("");
-                        setIsSnapshot(false);
-                        setError("");
-                      }}
-                    />
-                  </label>
-
-                  {file && (
-                    <div className="mt-4 rounded-xl bg-gray-50 p-4">
-                      <div className="font-medium text-gray-900">
-                        {file.name}
+                      <div className="mt-3 font-medium text-gray-900">
+                        Seleccionar imagen
                       </div>
 
                       <div className="mt-1 text-sm text-gray-500">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                        JPG, PNG, WEBP o GIF · Máximo 25 MB
                       </div>
-                    </div>
-                  )}
-                </>
-              )}
 
-              {error && (
-                <div className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">
-                  {error}
+                      <input
+                        id="file"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="hidden"
+                        onChange={(event) => {
+                          const selected = event.target.files?.[0] ?? null;
+                          acceptDroppedFile(selected);
+                        }}
+                      />
+                    </label>
+
+                    {file && (
+                      <div className="mt-4 rounded-xl bg-gray-50 p-4">
+                        <div className="font-medium text-gray-900">
+                          {file.name}
+                        </div>
+
+                        <div className="mt-1 text-sm text-gray-500">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {error && (
+                  <div className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">
+                    {error}
+                  </div>
+                )}
+
+                {isSnapshot ? (
+                  <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(shareUrl)}
+                      disabled={!shareUrl || uploading}
+                      className="rounded-xl border border-[#d8dbe4] bg-white px-4 py-3 font-semibold text-[#11183c] transition hover:bg-[#f7f8fb] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Copiar enlace
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDirectDownload}
+                      disabled={!file || uploading}
+                      className="rounded-xl bg-[#11183c] px-4 py-3 font-semibold text-white transition hover:bg-[#0b1030] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Descargar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={reset}
+                      disabled={uploading}
+                      className="rounded-xl border border-[#d8dbe4] bg-white px-4 py-3 font-semibold text-[#12141c] transition hover:bg-[#f7f8fb] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Nuevo archivo
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={!file || uploading}
+                    onClick={handleUpload}
+                    className="mt-6 w-full rounded-xl bg-[#11183c] px-5 py-3 font-semibold text-white transition hover:bg-[#0b1030] disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {uploading ? "Subiendo..." : "Subir y generar QR"}
+                  </button>
+                )}
+
+                {isSnapshot && !shareUrl && (
+                  <button
+                    type="button"
+                    disabled={uploading}
+                    onClick={handleUpload}
+                    className="mt-3 w-full rounded-xl border border-[#d8dbe4] bg-[#f8f9fb] px-5 py-3 font-semibold text-[#12141c] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {uploading ? "Generando QR…" : "Compartir por QR"}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="mt-8 text-center">
+                <div className="font-medium text-gray-900">
+                  ¡Listo! Escanea este código con tu móvil.
                 </div>
-              )}
 
-              <button
-                type="button"
-                disabled={!file || uploading}
-                onClick={handleUpload}
-                className="mt-6 w-full rounded-xl bg-black px-5 py-3 font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {uploading ? "Subiendo..." : "Subir y generar QR"}
-              </button>
+                <div className="mx-auto mt-6 w-fit rounded-2xl border bg-white p-4 shadow-sm">
+                  <img
+                    src={qr}
+                    alt="Código QR para descargar el archivo"
+                    width={320}
+                    height={320}
+                  />
+                </div>
 
-              {isSnapshot && (
-                <button
-                  type="button"
-                  onClick={reset}
-                  disabled={uploading}
-                  className="mt-3 w-full rounded-xl border border-gray-300 px-5 py-3 font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Elegir otra imagen
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="mt-8 text-center">
-              <div className="font-medium text-gray-900">
-                ¡Listo! Escanea este código con tu móvil.
+                {expiresAt && (
+                  <p className="mt-4 text-sm text-gray-500">
+                    Este enlace caduca en 1 hora.
+                  </p>
+                )}
+
+                <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard.writeText(shareUrl)}
+                    className="rounded-xl border border-[#d8dbe4] bg-white px-4 py-3 font-semibold text-[#11183c] hover:bg-[#f7f8fb]"
+                  >
+                    Copiar enlace
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDirectDownload}
+                    disabled={!file}
+                    className="rounded-xl bg-[#11183c] px-4 py-3 font-semibold text-white hover:bg-[#0b1030] disabled:opacity-40"
+                  >
+                    Descargar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={reset}
+                    className="rounded-xl border border-[#d8dbe4] bg-white px-4 py-3 font-semibold text-[#12141c] hover:bg-[#f7f8fb]"
+                  >
+                    Nuevo archivo
+                  </button>
+                </div>
               </div>
-
-              <div className="mx-auto mt-6 w-fit rounded-2xl border bg-white p-4 shadow-sm">
-                <img
-                  src={qr}
-                  alt="Código QR para descargar el archivo"
-                  width={320}
-                  height={320}
-                />
-              </div>
-
-              {expiresAt && (
-                <p className="mt-4 text-sm text-gray-500">
-                  Este enlace caduca en 1 hora.
-                </p>
-              )}
-
-              <div className="mt-6 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => navigator.clipboard.writeText(shareUrl)}
-                  className="flex-1 rounded-xl border border-gray-300 px-4 py-3 font-medium hover:bg-gray-50"
-                >
-                  Copiar enlace
-                </button>
-
-                <button
-                  type="button"
-                  onClick={reset}
-                  className="flex-1 rounded-xl bg-black px-4 py-3 font-medium text-white hover:bg-gray-800"
-                >
-                  Nuevo archivo
-                </button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </main>
