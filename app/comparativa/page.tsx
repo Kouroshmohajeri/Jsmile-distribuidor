@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
-import { IBERDROLA_OFFERS } from "@/lib/offers";
+import { IBERDROLA_OFFERS, type Tariff } from "@/lib/offers";
 import {
   calculateAllOffers,
   type ComparadorInput,
@@ -36,7 +36,6 @@ function Field({
       <span className="mb-2 block text-sm font-semibold text-[#12141c]">
         {label}
       </span>
-
       <div className="relative">
         <input
           type="number"
@@ -46,7 +45,6 @@ function Field({
           onChange={(event) => onChange(event.target.value)}
           className="w-full rounded-xl border border-[#dfe2e8] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#1b2559] focus:ring-2 focus:ring-[#1b2559]/10"
         />
-
         {suffix && (
           <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#858995]">
             {suffix}
@@ -69,182 +67,51 @@ function Section({
   return (
     <section className="rounded-3xl border border-[#e4e6ec] bg-white p-5 shadow-[0_12px_35px_rgba(18,20,28,.055)] sm:p-6">
       <h2 className="text-lg font-extrabold text-[#12141c]">{title}</h2>
-
       {description && (
         <p className="mt-1 text-sm text-[#777b87]">{description}</p>
       )}
-
       <div className="mt-5">{children}</div>
     </section>
   );
 }
 
-type OfferHighlight = {
-  background: string;
-  border: string;
-  accent: string;
-  iconBackground: string;
-};
-
-function getOfferHighlight(offerName: string): OfferHighlight | null {
-  const name = offerName.toLowerCase().replace(/\s+/g, " ").trim();
-
+function getOfferPriority(name: string) {
+  const value = name.toLowerCase();
   if (
-    name.includes("tranquilidad plus") ||
-    name.includes("supertranquilidad")
-  ) {
-    return {
-      background: "#EAF2FB",
-      border: "#BBD2EA",
-      accent: "#557FA7",
-      iconBackground: "#DCEAF7",
-    };
-  }
-
-  if (
-    name.includes("impulsa 24horas") ||
-    name.includes("impulsa 24 horas") ||
-    name.includes("impulsa 24h")
-  ) {
-    return {
-      background: "#FFF9DF",
-      border: "#E9DDA5",
-      accent: "#A4893B",
-      iconBackground: "#F8EFC7",
-    };
-  }
-
-  if (
-    name.includes("ahorro inteligente") ||
-    name.includes("inteligente 8 horas")
-  ) {
-    return {
-      background: "#EAF6EC",
-      border: "#B9DDBF",
-      accent: "#4F8A5B",
-      iconBackground: "#D8EEDC",
-    };
-  }
-
-  return null;
-}
-
-function getOfferPriority(offerName: string): number {
-  const name = offerName.toLowerCase().replace(/\s+/g, " ").trim();
-
-  if (
-    name.includes("ahorro inteligente") ||
-    name.includes("inteligente 8 horas")
-  ) {
+    value.includes("ahorro inteligente") ||
+    value.includes("inteligente 8 horas")
+  )
     return 1;
-  }
-
+  if (value.includes("impulso 24") || value.includes("impulsa 24")) return 2;
   if (
-    name.includes("impulso 24horas") ||
-    name.includes("impulso 24 horas") ||
-    name.includes("impulso 24h") ||
-    name.includes("impulsa 24horas") ||
-    name.includes("impulsa 24 horas") ||
-    name.includes("impulsa 24h")
-  ) {
-    return 2;
-  }
-
-  if (
-    name.includes("tranquilidad plus") ||
-    name.includes("supertranquilidad")
-  ) {
+    value.includes("tranquilidad plus") ||
+    value.includes("supertranquilidad")
+  )
     return 3;
-  }
-
   return 100;
 }
 
-function getDisplayOfferName(offerName: string): string {
-  const name = offerName.toLowerCase().replace(/\s+/g, " ").trim();
-
-  if (name.includes("ahorro inteligente") && name.includes("8 horas")) {
+function getDisplayOfferName(name: string) {
+  const value = name.toLowerCase();
+  if (value.includes("ahorro inteligente") && value.includes("8 horas"))
     return "Inteligente 8 horas";
-  }
-
-  if (name.includes("impulso 24horas") || name.includes("impulso 24 horas")) {
+  if (value.includes("impulso 24") || value.includes("impulsa 24"))
     return "Impulso 24h";
-  }
-
   if (
-    name.includes("tranquilidad plus") ||
-    name.includes("supertranquilidad")
-  ) {
+    value.includes("tranquilidad plus") ||
+    value.includes("supertranquilidad")
+  )
     return "Supertranquilidad";
-  }
-
-  return offerName;
+  return name;
 }
 
 function OfferIcon({ offerName }: { offerName: string }) {
   const name = offerName.toLowerCase();
-
-  if (name.includes("ahorro inteligente") && name.includes("8 horas")) {
-    return (
-      <svg
-        className="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={1.8}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M12 3v18M5 8l7-5 7 5M5 16l7 5 7-5"
-        />
-      </svg>
-    );
-  }
-
-  if (
-    name.includes("supertranquilidad") ||
-    name.includes("super tranquilidad")
-  ) {
-    return (
-      <svg
-        className="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={1.8}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4Z"
-        />
-      </svg>
-    );
-  }
-
-  if (
-    name.includes("impulso 24h") ||
-    name.includes("impulso 24 h") ||
-    name.includes("impulso 24 horas")
-  ) {
-    return (
-      <svg
-        className="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={1.8}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M13 2L4 14h7l-1 8 9-12h-7l1-8Z"
-        />
-      </svg>
-    );
-  }
-
+  const path = name.includes("tranquilidad")
+    ? "M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4Z"
+    : name.includes("ahorro")
+      ? "M12 3v18M5 8l7-5 7 5M5 16l7 5 7-5"
+      : "M13 2L4 14h7l-1 8 9-12h-7l1-8Z";
   return (
     <svg
       className="h-5 w-5"
@@ -253,52 +120,88 @@ function OfferIcon({ offerName }: { offerName: string }) {
       stroke="currentColor"
       strokeWidth={1.8}
     >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M13 2L4 14h7l-1 8 9-12h-7l1-8Z"
-      />
+      <path strokeLinecap="round" strokeLinejoin="round" d={path} />
     </svg>
   );
 }
 
-const initial: Record<string, string> = {
+const PERIODS = ["P1", "P2", "P3", "P4", "P5", "P6"] as const;
+type PeriodKey = (typeof PERIODS)[number];
+
+type FormState = Record<string, string>;
+
+const initial: FormState = {
   potenciaP1: "",
   potenciaP2: "",
-
+  potenciaP3: "",
+  potenciaP4: "",
+  potenciaP5: "",
+  potenciaP6: "",
   consumoP1: "",
   consumoP2: "",
   consumoP3: "",
-
-  perfilP1: "50",
-  perfilP2: "50",
+  consumoP4: "",
+  consumoP5: "",
+  consumoP6: "",
+  perfilP1: "55",
+  perfilP2: "45",
   perfilP3: "0",
-
+  perfilP4: "0",
+  perfilP5: "0",
+  perfilP6: "0",
+  usarPerfil: "true",
   iva: "21",
   ie: "5.113",
-
   diasFactura: "",
-
   reactivaBonoSocial: "0",
   otrosConceptos: "0",
   alquilerEquipo: "0",
-
+  excesosPotencia: "0",
+  otrosDescuentos: "0",
+  otrosCashbacks: "0",
   totalFacturaActual: "",
 };
 
+function detectTariff(form: FormState): Tariff | null {
+  const powers = PERIODS.map((period) =>
+    Number(form[`potencia${period}`] || 0),
+  );
+  if (powers.every((value) => value <= 0)) return null;
+
+  const maxPower = Math.max(...powers);
+  if (maxPower <= 10) return "2.0TD_2";
+  if (maxPower <= 15) return "2.0TD_3";
+
+  // A 6-period invoice is treated as 6.1TD when the workbook offers it;
+  // otherwise it remains 3.0TD.
+  const hasHigherPeriods = powers.slice(2).some((value) => value > 0);
+  return hasHigherPeriods ? "6.1TD" : "3.0TD";
+}
+
+function tariffLabel(tariff: Tariff | null) {
+  if (!tariff) return "";
+  if (tariff === "2.0TD_2") return "2.0 TD · hasta 10 kW";
+  if (tariff === "2.0TD_3") return "2.0 TD · más de 10 kW y hasta 15 kW";
+  if (tariff === "3.0TD") return "3.0 TD · más de 15 kW";
+  return "6.1 TD";
+}
+
+function requiredPeriods(tariff: Tariff | null) {
+  if (tariff === "6.1TD") return 6;
+  if (tariff === "3.0TD") return 6;
+  return 2;
+}
+
 export default function ComparativaPage() {
   const router = useRouter();
-
-  const [form, setForm] = useState(initial);
+  const [form, setForm] = useState<FormState>(initial);
   const [submitted, setSubmitted] = useState(false);
-
   const [selectedOffer, setSelectedOffer] = useState<OfferResult | null>(null);
   const [selectedSnapshotOffers, setSelectedSnapshotOffers] = useState<
     string[]
   >([]);
   const [creatingSnapshot, setCreatingSnapshot] = useState(false);
   const [snapshotError, setSnapshotError] = useState("");
-
   const [aiFilling, setAiFilling] = useState(false);
   const [aiFilledKeys, setAiFilledKeys] = useState<string[]>([]);
   const [aiMessage, setAiMessage] = useState("Analizando tu factura...");
@@ -311,17 +214,38 @@ export default function ComparativaPage() {
 
   useEffect(() => () => clearAiTimers(), []);
 
-  const runAiFillAnimation = (fields: Record<string, string>) => {
+  const update = (key: string, value: string) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    setSubmitted(false);
+  };
+
+  const runAiFillAnimation = (fields: Record<string, unknown>) => {
     clearAiTimers();
+
+    // Accept both the old invoice-parser names and the new P1..P6 names.
+    const normalized: Record<string, unknown> = { ...fields };
+    PERIODS.forEach((period) => {
+      const powerKey = `potencia${period}`;
+      const consumptionKey = `consumo${period}`;
+      const profileKey = `perfil${period}`;
+      if (normalized[powerKey] == null && normalized[`power${period}`] != null)
+        normalized[powerKey] = normalized[`power${period}`];
+      if (
+        normalized[consumptionKey] == null &&
+        normalized[`consumption${period}`] != null
+      )
+        normalized[consumptionKey] = normalized[`consumption${period}`];
+      if (
+        normalized[profileKey] == null &&
+        normalized[`profile${period}`] != null
+      )
+        normalized[profileKey] = normalized[`profile${period}`];
+    });
+
     const order = [
-      "potenciaP1",
-      "potenciaP2",
-      "consumoP1",
-      "consumoP2",
-      "consumoP3",
-      "perfilP1",
-      "perfilP2",
-      "perfilP3",
+      ...PERIODS.map((period) => `potencia${period}`),
+      ...PERIODS.map((period) => `consumo${period}`),
+      ...PERIODS.map((period) => `perfil${period}`),
       "iva",
       "ie",
       "diasFactura",
@@ -329,10 +253,16 @@ export default function ComparativaPage() {
       "reactivaBonoSocial",
       "otrosConceptos",
       "alquilerEquipo",
+      "excesosPotencia",
+      "otrosDescuentos",
+      "otrosCashbacks",
     ];
+
     const keys = order.filter(
       (key) =>
-        fields[key] !== undefined && fields[key] !== null && fields[key] !== "",
+        normalized[key] !== undefined &&
+        normalized[key] !== null &&
+        normalized[key] !== "",
     );
     setAiFilling(true);
     setAiFilledKeys([]);
@@ -341,7 +271,10 @@ export default function ComparativaPage() {
     keys.forEach((key, index) => {
       const timer = window.setTimeout(
         () => {
-          setForm((current) => ({ ...current, [key]: String(fields[key]) }));
+          setForm((current) => ({
+            ...current,
+            [key]: String(normalized[key]),
+          }));
           setAiFilledKeys((current) => [...current, key]);
           if (index < Math.ceil(keys.length * 0.45))
             setAiMessage("Identificando datos de la factura...");
@@ -356,7 +289,7 @@ export default function ComparativaPage() {
             aiTimers.current.push(finishTimer);
           }
         },
-        450 + index * 115,
+        250 + index * 70,
       );
       aiTimers.current.push(timer);
     });
@@ -372,121 +305,72 @@ export default function ComparativaPage() {
       });
   }, [aiFilledKeys]);
 
-  const update = (key: string, value: string) => {
-    setForm((current) => ({
-      ...current,
-      [key]: value,
-    }));
-
-    setSubmitted(false);
-  };
+  const tariff = useMemo(() => detectTariff(form), [form]);
 
   const parsed = useMemo<ComparadorInput | null>(() => {
     const n = (key: string) => Number(form[key]);
+    const periods = PERIODS.map((period) => n(`potencia${period}`));
+    const consumption = PERIODS.map((period) => n(`consumo${period}`));
+    const profile = PERIODS.map((period) => n(`perfil${period}`) / 100);
+    const required = requiredPeriods(tariff);
 
-    const requiredFields = [
-      "potenciaP1",
-      "potenciaP2",
-      "consumoP1",
-      "consumoP2",
-      "consumoP3",
-      "perfilP1",
-      "perfilP2",
-      "perfilP3",
-      "diasFactura",
-      "totalFacturaActual",
-    ];
-
-    if (
-      requiredFields.some((key) => form[key] === "" || !Number.isFinite(n(key)))
-    ) {
-      return null;
+    if (!tariff) return null;
+    for (let index = 0; index < required; index++) {
+      if (
+        !Number.isFinite(periods[index]) ||
+        !Number.isFinite(consumption[index])
+      )
+        return null;
+      if (
+        form[`potencia${PERIODS[index]}`] === "" ||
+        form[`consumo${PERIODS[index]}`] === ""
+      )
+        return null;
     }
+    if (form.diasFactura === "" || form.totalFacturaActual === "") return null;
+    if (
+      !Number.isFinite(n("diasFactura")) ||
+      !Number.isFinite(n("totalFacturaActual"))
+    )
+      return null;
 
     return {
-      potenciaP1: n("potenciaP1"),
-      potenciaP2: n("potenciaP2"),
-
-      consumoP1: n("consumoP1"),
-      consumoP2: n("consumoP2"),
-      consumoP3: n("consumoP3"),
-
-      perfilP1: n("perfilP1") / 100,
-      perfilP2: n("perfilP2") / 100,
-      perfilP3: n("perfilP3") / 100,
-
+      tariff,
+      potencia: periods as ComparadorInput["potencia"],
+      consumo: consumption as ComparadorInput["consumo"],
+      perfil: profile as ComparadorInput["perfil"],
+      usarPerfil: form.usarPerfil !== "false",
       iva: n("iva") / 100,
       ie: n("ie") / 100,
-
       diasFactura: n("diasFactura"),
-
-      reactivaBonoSocial: n("reactivaBonoSocial"),
-      otrosConceptos: n("otrosConceptos"),
-      alquilerEquipo: n("alquilerEquipo"),
-
+      reactivaBonoSocial: n("reactivaBonoSocial") || 0,
+      otrosConceptos: n("otrosConceptos") || 0,
+      alquilerEquipo: n("alquilerEquipo") || 0,
+      excesosPotencia: n("excesosPotencia") || 0,
+      otrosDescuentos: n("otrosDescuentos") / 100 || 0,
+      otrosCashbacks: n("otrosCashbacks") || 0,
       totalFacturaActual: n("totalFacturaActual"),
     };
-  }, [form]);
+  }, [form, tariff]);
 
-  const profileTotal =
-    Number(form.perfilP1 || 0) +
-    Number(form.perfilP2 || 0) +
-    Number(form.perfilP3 || 0);
-
-  const validProfile =
-    Math.abs(profileTotal - 100) < 0.001 &&
-    Number(form.perfilP1 || 0) >= 0 &&
-    Number(form.perfilP2 || 0) >= 0 &&
-    Number(form.perfilP3 || 0) >= 0;
-
-  const tariff = useMemo(() => {
-    if (!form.potenciaP1 || !form.potenciaP2) {
-      return null;
-    }
-
-    const maxPower = Math.max(Number(form.potenciaP1), Number(form.potenciaP2));
-
-    if (maxPower <= 10) {
-      return "2.0TD_2";
-    }
-
-    if (maxPower <= 15) {
-      return "2.0TD_3";
-    }
-
-    return "3.0TD";
-  }, [form.potenciaP1, form.potenciaP2]);
+  const profileTotal = PERIODS.reduce(
+    (sum, period) => sum + Number(form[`perfil${period}`] || 0),
+    0,
+  );
+  const validProfile = !form.usarPerfil || Math.abs(profileTotal - 100) < 0.001;
 
   const results = useMemo(() => {
-    if (!submitted || !parsed || !tariff || tariff === "3.0TD") {
-      return [];
-    }
-
+    if (!submitted || !parsed) return [];
     const compatibleOffers = IBERDROLA_OFFERS.filter(
-      (
-        offer,
-      ): offer is typeof offer & {
-        powerPricesAnnual: [number, number];
-      } =>
-        offer.tariff === tariff &&
-        offer.powerPricesAnnual[0] !== null &&
-        offer.powerPricesAnnual[1] !== null,
+      (offer) => offer.tariff === parsed.tariff,
     );
-
-    const calculated = calculateAllOffers(parsed, compatibleOffers);
-
-    return [...calculated].sort((a, b) => {
+    return calculateAllOffers(parsed, compatibleOffers).sort((a, b) => {
       const priorityA = getOfferPriority(a.offerName);
-
       const priorityB = getOfferPriority(b.offerName);
-
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB;
-      }
-
+      if (priorityA !== priorityB) return priorityA - priorityB;
       return a.offerName.localeCompare(b.offerName, "es");
     });
-  }, [submitted, parsed, tariff]);
+  }, [submitted, parsed]);
 
   const canCalculate =
     parsed !== null &&
@@ -502,297 +386,114 @@ export default function ComparativaPage() {
     }).format(value);
 
   async function handleSnapshot() {
-    if (results.length === 0 || !parsed) {
-      return;
-    }
-
-    const snapshotInput = parsed;
-    const snapshotTariff = tariff ?? "2.0TD";
-
-    // If the user has selected specific plans, share only those plans.
-    // If nothing is selected, fall back to the first three highlighted plans.
-    const snapshotResults =
-      selectedSnapshotOffers.length > 0
-        ? results.filter((result) =>
-            selectedSnapshotOffers.includes(result.offerName),
-          )
-        : results.slice(0, 3);
-
-    if (snapshotResults.length === 0) {
-      return;
-    }
+    if (!results.length || !parsed) return;
+    const snapshotResults = selectedSnapshotOffers.length
+      ? results.filter((result) =>
+          selectedSnapshotOffers.includes(result.offerName),
+        )
+      : results.slice(0, 3);
+    if (!snapshotResults.length) return;
 
     setCreatingSnapshot(true);
     setSnapshotError("");
-
     try {
-      // Compact 5-column LIST snapshot.
-      // Every offer is one row. Columns:
-      // # | PLAN | TARIFA | PRECIO / AÑO | AHORRO
-      const canvasWidth = 1400;
+      const canvas = document.createElement("canvas");
       const padding = 42;
+      const rowHeight = 62;
       const headerHeight = 112;
       const tableHeaderHeight = 42;
-      const rowHeight = 62;
       const footerHeight = 42;
-      const tableGap = 14;
-      const tableRowsHeight =
-        tableHeaderHeight + snapshotResults.length * rowHeight;
-      const canvasHeight =
-        padding +
+      const width = 1400;
+      const height =
+        padding * 2 +
         headerHeight +
-        tableGap +
-        tableRowsHeight +
+        tableHeaderHeight +
+        snapshotResults.length * rowHeight +
         footerHeight +
-        padding;
-
-      const canvas = document.createElement("canvas");
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
-
+        14;
+      canvas.width = width;
+      canvas.height = height;
       const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas context is not available");
 
-      if (!ctx) {
-        throw new Error("Canvas context is not available");
-      }
-
-      const roundedRect = (
-        x: number,
-        y: number,
-        width: number,
-        height: number,
-        radius: number,
-      ) => {
-        const r = Math.min(radius, width / 2, height / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + width, y, x + width, y + height, r);
-        ctx.arcTo(x + width, y + height, x, y + height, r);
-        ctx.arcTo(x, y + height, x, y, r);
-        ctx.arcTo(x, y, x + width, y, r);
-        ctx.closePath();
-      };
-
-      const drawText = (
-        value: string,
-        x: number,
-        y: number,
-        font: string,
-        fillStyle: string,
-        align: CanvasTextAlign = "left",
-      ) => {
-        ctx.font = font;
-        ctx.fillStyle = fillStyle;
-        ctx.textAlign = align;
-        ctx.textBaseline = "middle";
-        ctx.fillText(value, x, y);
-      };
-
-      // Page background.
       ctx.fillStyle = "#f5f6f9";
-      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(padding, padding, width - padding * 2, height - padding * 2);
+      ctx.fillStyle = "#12141c";
+      ctx.font = "700 28px Arial";
+      ctx.fillText("Comparativa de tarifas", padding + 28, padding + 38);
+      ctx.fillStyle = "#667085";
+      ctx.font = "400 15px Arial";
+      ctx.fillText(
+        `Planes Iberdrola · ${tariffLabel(parsed.tariff)}`,
+        padding + 28,
+        padding + 68,
+      );
 
-      // Main card.
-      roundedRect(
-        padding,
-        padding,
-        canvasWidth - padding * 2,
-        canvasHeight - padding * 2,
-        24,
+      const tableY = padding + headerHeight;
+      ctx.fillStyle = "#11183c";
+      ctx.fillRect(
+        padding + 20,
+        tableY,
+        width - padding * 2 - 40,
+        tableHeaderHeight,
       );
       ctx.fillStyle = "#ffffff";
-      ctx.fill();
-
-      // Header.
-      drawText(
-        "Comparativa de tarifas",
-        padding + 28,
-        padding + 30,
-        "700 28px Arial, sans-serif",
-        "#12141c",
-      );
-
-      drawText(
-        "Planes Iberdrola · resumen de precios",
-        padding + 28,
-        padding + 62,
-        "400 15px Arial, sans-serif",
-        "#667085",
-      );
-
-      drawText(
-        `${(
-          snapshotInput.consumoP1 +
-          snapshotInput.consumoP2 +
-          snapshotInput.consumoP3
-        ).toLocaleString("es-ES")} kWh/año`,
-        canvasWidth - padding - 28,
-        padding + 46,
-        "700 16px Arial, sans-serif",
-        "#12141c",
-        "right",
-      );
-
-      const tableX = padding + 20;
-      const tableY = padding + headerHeight + tableGap;
-      const tableWidth = canvasWidth - padding * 2 - 40;
-
-      // Explicit 5-column table widths.
-      const colWidths = [58, 570, 190, 260, 260];
-      const colX = [
-        tableX,
-        tableX + colWidths[0],
-        tableX + colWidths[0] + colWidths[1],
-        tableX + colWidths[0] + colWidths[1] + colWidths[2],
-        tableX + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3],
+      ctx.font = "700 13px Arial";
+      const cols = [
+        padding + 38,
+        padding + 90,
+        padding + 760,
+        padding + 1030,
+        padding + 1220,
       ];
-
-      // Table header.
-      roundedRect(tableX, tableY, tableWidth, tableHeaderHeight, 10);
-      ctx.fillStyle = "#f3f4f7";
-      ctx.fill();
-
-      drawText(
-        "#",
-        colX[0] + 16,
-        tableY + tableHeaderHeight / 2,
-        "700 10px Arial, sans-serif",
-        "#858995",
-      );
-      drawText(
-        "PLAN",
-        colX[1] + 16,
-        tableY + tableHeaderHeight / 2,
-        "700 10px Arial, sans-serif",
-        "#858995",
-      );
-      drawText(
-        "TARIFA",
-        colX[2] + 16,
-        tableY + tableHeaderHeight / 2,
-        "700 10px Arial, sans-serif",
-        "#858995",
-      );
-      drawText(
-        "PRECIO / AÑO",
-        colX[3] + 16,
-        tableY + tableHeaderHeight / 2,
-        "700 10px Arial, sans-serif",
-        "#858995",
-      );
-      drawText(
-        "AHORRO",
-        colX[4] + 16,
-        tableY + tableHeaderHeight / 2,
-        "700 10px Arial, sans-serif",
-        "#858995",
+      ["#", "PLAN", "TARIFA", "PRECIO / AÑO", "AHORRO"].forEach((text, index) =>
+        ctx.fillText(text, cols[index], tableY + 27),
       );
 
       snapshotResults.forEach((result, index) => {
         const y = tableY + tableHeaderHeight + index * rowHeight;
-        const isTranquilidad = result.offerName
-          .toLowerCase()
-          .includes("tranquilidad plus");
-        const isImpulso =
-          result.offerName.toLowerCase().includes("impulso 24horas") ||
-          result.offerName.toLowerCase().includes("impulso 24 horas");
-        const isAhorro = result.offerName
-          .toLowerCase()
-          .includes("ahorro inteligente");
-
-        const isHighlighted =
-          (isTranquilidad || isImpulso || isAhorro) && index < 3;
-
-        if (isHighlighted) {
-          roundedRect(tableX + 4, y + 5, tableWidth - 8, rowHeight - 10, 10);
-
-          ctx.fillStyle = isTranquilidad
-            ? "#EAF2FB"
-            : isImpulso
-              ? "#FFF9DF"
-              : "#EAF6EC";
-
-          ctx.fill();
-        }
-
-        // Horizontal divider.
-        if (index > 0) {
-          ctx.fillStyle = "#eef0f3";
-          ctx.fillRect(tableX, y, tableWidth, 1);
-        }
-
-        // 1. Rank
-        drawText(
-          String(index + 1),
-          colX[0] + 16,
-          y + rowHeight / 2,
-          "700 13px Arial, sans-serif",
-          isHighlighted ? "#12141c" : "#858995",
-        );
-
-        // 2. Plan name — always visible.
-        drawText(
+        ctx.fillStyle = index % 2 ? "#fafbfc" : "#ffffff";
+        ctx.fillRect(padding + 20, y, width - padding * 2 - 40, rowHeight);
+        ctx.fillStyle = "#12141c";
+        ctx.font = "700 15px Arial";
+        ctx.fillText(String(index + 1), cols[0], y + rowHeight / 2);
+        ctx.fillText(
           getDisplayOfferName(result.offerName),
-          colX[1] + 16,
+          cols[1],
           y + rowHeight / 2,
-          "700 15px Arial, sans-serif",
-          "#12141c",
         );
-
-        // 3. Tariff.
-        drawText(
-          snapshotTariff,
-          colX[2] + 16,
-          y + rowHeight / 2,
-          "400 13px Arial, sans-serif",
-          "#667085",
-        );
-
-        // 4. Annual price.
-        drawText(
-          money(result.total),
-          colX[3] + 16,
-          y + rowHeight / 2,
-          "700 16px Arial, sans-serif",
-          "#12141c",
-        );
-
-        // 5. Saving.
-        drawText(
+        ctx.font = "400 14px Arial";
+        ctx.fillText(result.tariff, cols[2], y + rowHeight / 2);
+        ctx.fillText(money(result.total), cols[3], y + rowHeight / 2);
+        ctx.fillStyle = result.saving > 0 ? "#087f5b" : "#98a0ad";
+        ctx.font = "700 15px Arial";
+        ctx.fillText(
           result.saving > 0 ? money(result.saving) : "—",
-          colX[4] + 16,
+          cols[4],
           y + rowHeight / 2,
-          "700 15px Arial, sans-serif",
-          result.saving > 0 ? "#087f5b" : "#98a0ad",
         );
       });
 
-      drawText(
+      ctx.fillStyle = "#98a0ad";
+      ctx.font = "400 11px Arial";
+      ctx.fillText(
         "Estimación orientativa · jsmile",
-        tableX,
-        canvasHeight - padding - 15,
-        "400 11px Arial, sans-serif",
-        "#98a0ad",
+        padding + 20,
+        height - padding - 15,
       );
-
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.86);
-
-      try {
-        sessionStorage.setItem("jsmile_share_snapshot", dataUrl);
-        sessionStorage.setItem(
-          "jsmile_share_selected_offers",
-          JSON.stringify(snapshotResults.map((result) => result.offerName)),
-        );
-      } catch {
-        sessionStorage.setItem(
-          "jsmile_share_snapshot",
-          canvas.toDataURL("image/jpeg", 0.68),
-        );
-      }
-
+      sessionStorage.setItem(
+        "jsmile_share_snapshot",
+        canvas.toDataURL("image/jpeg", 0.86),
+      );
+      sessionStorage.setItem(
+        "jsmile_share_selected_offers",
+        JSON.stringify(snapshotResults.map((result) => result.offerName)),
+      );
       router.push("/compartir");
     } catch (error) {
-      console.error("Could not create snapshot:", error);
+      console.error(error);
       setSnapshotError("No se ha podido crear la imagen. Inténtalo de nuevo.");
     } finally {
       setCreatingSnapshot(false);
@@ -802,24 +503,16 @@ export default function ComparativaPage() {
   return (
     <>
       <main
-        className={`relative min-h-screen overflow-hidden bg-[#f5f6f9] px-4 py-8 text-[#12141c] sm:px-6 ${
-          aiFilling ? "ai-filling-page" : ""
-        }`}
+        className={`relative min-h-screen overflow-hidden bg-[#f5f6f9] px-4 py-8 text-[#12141c] sm:px-6 ${aiFilling ? "ai-filling-page" : ""}`}
       >
         {aiFilling && (
           <>
-            {/* Full-screen AI overlay */}
             <div className="fixed inset-0 z-40 bg-white/60 backdrop-blur-md" />
-
-            {/* Progress bar */}
             <div className="pointer-events-none fixed inset-x-0 top-0 z-50 h-1 overflow-hidden bg-[#e8eaf0]">
               <div className="ai-progress-bar h-full rounded-full bg-[#11183c]" />
             </div>
-
-            {/* AI reviewing card */}
             <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-6">
               <div className="w-full max-w-sm rounded-3xl border border-[#e4e6ec] bg-white px-6 py-7 text-center shadow-[0_30px_100px_rgba(18,20,28,.16)]">
-                {/* LOTTIE */}
                 <div className="mx-auto h-44 w-44">
                   <DotLottieReact
                     src="https://lottie.host/6690e4d4-cfa1-4cc4-a69f-26f59a67a894/Aaae80lNoL.lottie"
@@ -827,145 +520,84 @@ export default function ComparativaPage() {
                     autoplay
                   />
                 </div>
-
-                {/* AI title */}
-                <div className="-mt-2 flex items-center justify-center gap-2">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#11183c] text-xs text-white">
-                    ✦
-                  </span>
-
-                  <p className="text-lg font-extrabold text-[#12141c]">
-                    Estamos revisando tu factura
-                  </p>
-                </div>
-
-                {/* Dynamic status */}
+                <p className="text-lg font-extrabold text-[#12141c]">
+                  Estamos revisando tu factura
+                </p>
                 <p className="mt-2 text-sm leading-5 text-[#777b87]">
                   {aiMessage}
                 </p>
-
-                {/* Fields counter */}
                 <div className="mx-auto mt-5 flex w-fit items-center gap-2 rounded-full bg-[#f5f6f9] px-3 py-1.5 text-xs font-bold text-[#5b5f6b]">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#11183c]" />
-
-                  {aiFilledKeys.length > 0
+                  {aiFilledKeys.length
                     ? `${aiFilledKeys.length} datos identificados`
                     : "Analizando factura..."}
                 </div>
-
-                {/* Small explanation */}
-                <p className="mt-4 text-[11px] leading-5 text-[#989ba5]">
-                  La IA está leyendo y colocando los datos de tu factura
-                  automáticamente.
-                </p>
               </div>
             </div>
           </>
         )}
+
         <div className="mx-auto max-w-6xl">
-          {/* BACK */}
           <button
             type="button"
-            onClick={() => {
-              if (window.history.length > 1) {
-                router.back();
-              } else {
-                router.push("/");
-              }
-            }}
+            onClick={() =>
+              window.history.length > 1 ? router.back() : router.push("/")
+            }
             className="mb-5 inline-flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-[#5b5f6b] transition hover:bg-white hover:text-[#12141c]"
           >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            Volver
+            ← Volver
           </button>
 
-          {/* HEADER */}
           <div className="mb-8">
             <p className="text-[10px] font-extrabold uppercase tracking-[2.5px] text-[#8a7b4f]">
               jsmile.es
             </p>
-
             <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
               Comparativa Iberdrola
             </h1>
-
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#777b87]">
               Introduce los datos de la factura actual para calcular las ofertas
               Iberdrola compatibles con la potencia contratada.
             </p>
           </div>
 
-          {/* PDF IMPORT */}
           <InvoiceImporter
             onExtracted={(fields) => {
               setSubmitted(false);
               setSelectedOffer(null);
-              runAiFillAnimation(fields as Record<string, string>);
+              runAiFillAnimation(fields as unknown as Record<string, unknown>);
             }}
           />
 
-          {/* FORM */}
           <div
             className={`mt-5 grid gap-5 lg:grid-cols-2 transition-all duration-700 ${aiFilling ? "ai-form-active" : ""}`}
           >
-            {/* POTENCIA */}
             <Section
               title="Potencia contratada"
               description="Indica la potencia contratada en cada periodo."
             >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  dataAiKey="potenciaP1"
-                  label="Potencia P1"
-                  value={form.potenciaP1}
-                  onChange={(value) => update("potenciaP1", value)}
-                  suffix="kW"
-                />
-
-                <Field
-                  dataAiKey="potenciaP2"
-                  label="Potencia P2"
-                  value={form.potenciaP2}
-                  onChange={(value) => update("potenciaP2", value)}
-                  suffix="kW"
-                />
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {PERIODS.map((period) => (
+                  <Field
+                    key={period}
+                    dataAiKey={`potencia${period}`}
+                    label={`Potencia ${period}`}
+                    value={form[`potencia${period}`]}
+                    onChange={(value) => update(`potencia${period}`, value)}
+                    suffix="kW"
+                  />
+                ))}
               </div>
-
               {tariff && (
                 <div className="mt-4 rounded-xl bg-[#f4f0e5] px-4 py-3 text-sm text-[#5b5f6b]">
                   <span className="font-bold text-[#12141c]">
                     Tarifa detectada:
                   </span>{" "}
-                  {tariff === "2.0TD_2"
-                    ? "2.0 TD · hasta 10 kW"
-                    : tariff === "2.0TD_3"
-                      ? "2.0 TD · más de 10 kW y hasta 15 kW"
-                      : "3.0 TD · más de 15 kW"}
-                </div>
-              )}
-
-              {tariff === "3.0TD" && (
-                <div className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-800">
-                  Con los campos solicitados actualmente solo podemos calcular
-                  2.0 TD. Una tarifa 3.0 TD requiere los seis periodos de
-                  potencia y consumo.
+                  {tariffLabel(tariff)}
                 </div>
               )}
             </Section>
 
-            {/* TAXES */}
             <Section
               title="Impuestos"
               description="Introduce los porcentajes que aparecen en la factura."
@@ -978,7 +610,6 @@ export default function ComparativaPage() {
                   onChange={(value) => update("iva", value)}
                   suffix="%"
                 />
-
                 <Field
                   dataAiKey="ie"
                   label="Impuesto eléctrico (IE)"
@@ -989,109 +620,57 @@ export default function ComparativaPage() {
               </div>
             </Section>
 
-            {/* CONSUMPTION */}
             <Section
               title="Consumo"
-              description="Introduce el consumo de la factura."
+              description="Introduce el consumo de la factura en cada periodo."
             >
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Field
-                  dataAiKey="consumoP1"
-                  label="Consumo P1"
-                  value={form.consumoP1}
-                  onChange={(value) => update("consumoP1", value)}
-                  suffix="kWh"
-                />
-
-                <Field
-                  dataAiKey="consumoP2"
-                  label="Consumo P2"
-                  value={form.consumoP2}
-                  onChange={(value) => update("consumoP2", value)}
-                  suffix="kWh"
-                />
-
-                <Field
-                  dataAiKey="consumoP3"
-                  label="Consumo P3"
-                  value={form.consumoP3}
-                  onChange={(value) => update("consumoP3", value)}
-                  suffix="kWh"
-                />
-              </div>
-
-              {/* EDITABLE PROFILE */}
-              <div className="mt-5 rounded-2xl border border-[#e4e6ec] bg-[#fafbfc] p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-bold text-[#12141c]">
-                      Perfil de consumo
-                    </p>
-
-                    <p className="mt-1 text-xs leading-5 text-[#858995]">
-                      Se calcula a partir del consumo extraído. Puedes revisarlo
-                      o editarlo. El total debe ser 100%.
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg bg-[#eef0f8] px-2.5 py-1 text-xs font-bold text-[#1b2559]">
-                    Editable
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {PERIODS.map((period) => (
                   <Field
-                    dataAiKey="perfilP1"
-                    label="P1"
-                    value={form.perfilP1}
-                    onChange={(value) => update("perfilP1", value)}
-                    suffix="%"
-                    min={0}
-                    step="0.01"
+                    key={period}
+                    dataAiKey={`consumo${period}`}
+                    label={`Consumo ${period}`}
+                    value={form[`consumo${period}`]}
+                    onChange={(value) => update(`consumo${period}`, value)}
+                    suffix="kWh"
                   />
-
-                  <Field
-                    dataAiKey="perfilP2"
-                    label="P2"
-                    value={form.perfilP2}
-                    onChange={(value) => update("perfilP2", value)}
-                    suffix="%"
-                    min={0}
-                    step="0.01"
-                  />
-
-                  <Field
-                    dataAiKey="perfilP3"
-                    label="P3"
-                    value={form.perfilP3}
-                    onChange={(value) => update("perfilP3", value)}
-                    suffix="%"
-                    min={0}
-                    step="0.01"
-                  />
-                </div>
-
-                <div
-                  className={`mt-3 flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold ${
-                    validProfile
-                      ? "bg-[#EAF6EC] text-[#4F8A5B]"
-                      : "bg-red-50 text-red-600"
-                  }`}
-                >
-                  <span>Total del perfil</span>
-
-                  <span>{profileTotal}%</span>
-                </div>
-
-                {!validProfile && (
-                  <p className="mt-2 text-xs text-red-600">
-                    El perfil debe sumar exactamente 100%.
-                  </p>
-                )}
+                ))}
               </div>
             </Section>
 
-            {/* INVOICE */}
+            <Section
+              title="Perfil de consumo"
+              description="Solo se utiliza en ofertas de dos precios. Debe sumar 100%."
+            >
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {PERIODS.map((period) => (
+                  <Field
+                    key={period}
+                    dataAiKey={`perfil${period}`}
+                    label={`Perfil ${period}`}
+                    value={form[`perfil${period}`]}
+                    onChange={(value) => update(`perfil${period}`, value)}
+                    suffix="%"
+                  />
+                ))}
+              </div>
+              <label className="mt-4 flex items-center gap-2 text-sm font-medium text-[#5b5f6b]">
+                <input
+                  type="checkbox"
+                  checked={form.usarPerfil !== "false"}
+                  onChange={(event) =>
+                    update("usarPerfil", String(event.target.checked))
+                  }
+                />
+                Usar perfil editable para ofertas de 2 precios
+              </label>
+              {!validProfile && (
+                <p className="mt-3 text-sm text-red-600">
+                  El perfil debe sumar 100%.
+                </p>
+              )}
+            </Section>
+
             <Section
               title="Datos de la factura"
               description="Introduce los importes del periodo facturado."
@@ -1099,13 +678,12 @@ export default function ComparativaPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field
                   dataAiKey="diasFactura"
-                  label="Días de factura"
+                  label="Días facturados"
                   value={form.diasFactura}
                   onChange={(value) => update("diasFactura", value)}
                   suffix="días"
                   step="1"
                 />
-
                 <Field
                   dataAiKey="totalFacturaActual"
                   label="Total factura actual"
@@ -1113,15 +691,13 @@ export default function ComparativaPage() {
                   onChange={(value) => update("totalFacturaActual", value)}
                   suffix="€"
                 />
-
                 <Field
                   dataAiKey="reactivaBonoSocial"
-                  label="Reactiva + Bono Social"
+                  label="Reactiva / Bono Social"
                   value={form.reactivaBonoSocial}
                   onChange={(value) => update("reactivaBonoSocial", value)}
                   suffix="€"
                 />
-
                 <Field
                   dataAiKey="otrosConceptos"
                   label="Otros conceptos"
@@ -1129,758 +705,264 @@ export default function ComparativaPage() {
                   onChange={(value) => update("otrosConceptos", value)}
                   suffix="€"
                 />
-
                 <Field
                   dataAiKey="alquilerEquipo"
-                  label="Alquiler de equipo"
+                  label="Alquiler equipo"
                   value={form.alquilerEquipo}
                   onChange={(value) => update("alquilerEquipo", value)}
                   suffix="€"
+                />
+                <Field
+                  dataAiKey="excesosPotencia"
+                  label="Excesos de potencia"
+                  value={form.excesosPotencia}
+                  onChange={(value) => update("excesosPotencia", value)}
+                  suffix="€"
+                />
+                <Field
+                  dataAiKey="otrosDescuentos"
+                  label="Otros descuentos"
+                  value={form.otrosDescuentos}
+                  onChange={(value) => update("otrosDescuentos", value)}
+                  suffix="%"
+                />
+                <Field
+                  dataAiKey="otrosCashbacks"
+                  label="Cashback anual"
+                  value={form.otrosCashbacks}
+                  onChange={(value) => update("otrosCashbacks", value)}
+                  suffix="€/año"
                 />
               </div>
             </Section>
           </div>
 
-          {/* CALCULATE */}
-          <button
-            type="button"
-            disabled={!canCalculate || tariff === "3.0TD"}
-            onClick={() => {
-              setSubmitted(true);
-              window.setTimeout(() => {
-                document.getElementById("comparativa-results")?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start",
-                });
-              }, 50);
-            }}
-            className="mt-5 w-full cursor-pointer rounded-2xl bg-[#11183c] px-5 py-4 font-bold text-white shadow-sm transition hover:bg-[#1b2559] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Calcular comparativa
-          </button>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              disabled={!canCalculate}
+              onClick={() => {
+                setSubmitted(true);
+                setSelectedOffer(null);
+                setSelectedSnapshotOffers([]);
+                window.setTimeout(
+                  () =>
+                    document
+                      .getElementById("comparativa-results")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                  50,
+                );
+              }}
+              className="rounded-2xl bg-[#11183c] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#1b2559] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Calcular comparativa
+            </button>
+            {tariff && (
+              <span className="text-sm text-[#777b87]">
+                {tariffLabel(tariff)} · {results.length} ofertas compatibles
+              </span>
+            )}
+          </div>
 
-          {/* RESULTS */}
-          {submitted && tariff !== "3.0TD" && results.length > 0 && (
+          {submitted && results.length > 0 && (
             <section id="comparativa-results" className="mt-10 scroll-mt-6">
-              <div>
-                <div className="mb-6">
+              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
                   <p className="text-[10px] font-extrabold uppercase tracking-[2.5px] text-[#8a7b4f]">
                     Resultado
                   </p>
-
-                  <h2 className="mt-1 text-2xl font-black">
-                    Ofertas Iberdrola
+                  <h2 className="mt-2 text-2xl font-black">
+                    Ofertas compatibles
                   </h2>
-
                   <p className="mt-1 text-sm text-[#777b87]">
-                    Pulsa sobre una oferta para ver todos sus detalles.
+                    Los importes se calculan con la estructura de periodos y
+                    reglas del nuevo modelo Excel.
                   </p>
                 </div>
-
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {results.map((result) => {
-                    const highlight = getOfferHighlight(result.offerName);
-
-                    return (
-                      <button
-                        key={result.offerId}
-                        type="button"
-                        onClick={() => setSelectedOffer(result)}
-                        className="group relative flex min-h-71.25 cursor-pointer flex-col overflow-hidden rounded-3xl border p-5 text-left shadow-[0_8px_25px_rgba(18,20,28,.045)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(18,20,28,.10)] focus:outline-none focus:ring-2 focus:ring-[#1b2559]/20"
-                        style={{
-                          backgroundColor: highlight?.background ?? "#ffffff",
-                          borderColor: highlight?.border ?? "#e4e6ec",
-                        }}
-                      >
-                        {highlight && (
-                          <div
-                            className="absolute left-0 top-0 h-1 w-full"
-                            style={{
-                              backgroundColor: highlight.accent,
-                            }}
-                          />
-                        )}
-
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex min-w-0 items-start gap-3">
-                            <span
-                              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                              style={{
-                                backgroundColor:
-                                  highlight?.iconBackground ?? "#f1f2f5",
-                                color: highlight?.accent ?? "#626775",
-                              }}
-                            >
-                              <OfferIcon offerName={result.offerName} />
-                            </span>
-
-                            <div className="min-w-0">
-                              <p className="line-clamp-2 text-base font-extrabold leading-5 text-[#12141c]">
-                                {getDisplayOfferName(result.offerName)}
-                              </p>
-
-                              {highlight && (
-                                <p
-                                  className="mt-1 text-[10px] font-extrabold uppercase tracking-[1.2px]"
-                                  style={{
-                                    color: highlight.accent,
-                                  }}
-                                >
-                                  Oferta destacada
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/70 text-[#777b87] transition group-hover:translate-x-0.5 group-hover:text-[#12141c]">
-                            <svg
-                              className="h-4 w-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                              strokeWidth={2}
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                d="M9 5l7 7-7 7"
-                              />
-                            </svg>
-                          </span>
-                        </div>
-
-                        <div className="mt-4 min-h-10.5">
-                          <p className="line-clamp-2 text-xs leading-5 text-[#777b87]">
-                            {result.discountText ||
-                              "Oferta de electricidad Iberdrola."}
-                          </p>
-                        </div>
-
-                        <div className="mt-auto pt-6">
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="rounded-2xl border border-black/5 bg-white/65 p-3">
-                              <p className="text-[9px] font-extrabold uppercase tracking-[1px] text-[#858995]">
-                                Precio actual
-                              </p>
-
-                              <p className="mt-1 text-lg font-bold text-[#777b87] line-through decoration-[#b4b7bf]">
-                                {money(parsed!.totalFacturaActual)}
-                              </p>
-                            </div>
-
-                            <div className="rounded-2xl border border-black/5 bg-white/85 p-3">
-                              <p className="text-[9px] font-extrabold uppercase tracking-[1px] text-[#858995]">
-                                Con este plan
-                              </p>
-
-                              <p className="mt-1 text-lg font-black text-[#12141c]">
-                                {money(result.total)}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="mt-3 flex items-end justify-between">
-                            <div>
-                              <p className="text-[9px] font-extrabold uppercase tracking-[1px] text-[#858995]">
-                                Ahorro
-                              </p>
-
-                              <p
-                                className="mt-0.5 text-2xl font-black"
-                                style={{
-                                  color: highlight?.accent ?? "#4F8A5B",
-                                }}
-                              >
-                                {money(result.saving)}
-                              </p>
-                            </div>
-
-                            <span className="pb-1 text-xs font-medium text-[#858995]">
-                              / factura
-                            </span>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+                <button
+                  type="button"
+                  onClick={handleSnapshot}
+                  disabled={creatingSnapshot}
+                  className="rounded-xl border border-[#dfe2e8] bg-white px-4 py-2.5 text-sm font-bold text-[#12141c] hover:bg-[#f7f8fa] disabled:opacity-50"
+                >
+                  {creatingSnapshot
+                    ? "Creando imagen..."
+                    : "Compartir comparativa"}
+                </button>
               </div>
 
-              <div className="mt-6 rounded-3xl border border-[#e4e6ec] bg-white p-4 shadow-[0_8px_25px_rgba(18,20,28,.045)] sm:p-5">
-                <div className="mb-4">
-                  <p className="font-extrabold text-[#12141c]">
-                    ¿Qué planes quieres compartir?
-                  </p>
-                  <p className="mt-1 text-sm leading-5 text-[#777b87]">
-                    Selecciona uno o varios planes. Si no seleccionas ninguno,
-                    se compartirán automáticamente los tres planes destacados.
-                  </p>
-                </div>
+              {snapshotError && (
+                <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {snapshotError}
+                </p>
+              )}
 
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {results.map((result) => {
-                    const isSelected = selectedSnapshotOffers.includes(
-                      result.offerName,
-                    );
-                    const highlight = getOfferHighlight(result.offerName);
-
-                    return (
-                      <label
-                        key={result.offerName}
-                        className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-3 py-3 transition ${
-                          isSelected
-                            ? "border-[#11183c] bg-[#f5f6fb] shadow-sm"
-                            : "border-[#e4e6ec] bg-white hover:border-[#cdd1dc]"
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => {
+              <div className="grid gap-4">
+                {results.map((result) => {
+                  const selected = selectedSnapshotOffers.includes(
+                    result.offerName,
+                  );
+                  return (
+                    <article
+                      key={result.offerId}
+                      className={`rounded-3xl border bg-white p-5 shadow-[0_12px_35px_rgba(18,20,28,.055)] transition ${selected ? "border-[#11183c] ring-2 ring-[#11183c]/10" : "border-[#e4e6ec]"}`}
+                    >
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f0e5] text-[#8a7b4f]">
+                            <OfferIcon offerName={result.offerName} />
+                          </div>
+                          <div>
+                            <h3 className="font-extrabold text-[#12141c]">
+                              {getDisplayOfferName(result.offerName)}
+                            </h3>
+                            <p className="mt-1 text-xs text-[#777b87]">
+                              {result.tariff} · {result.duration}
+                            </p>
+                            <p className="mt-2 text-xs leading-5 text-[#666b78]">
+                              {result.discountText}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-5 sm:grid-cols-4 lg:min-w-[560px]">
+                          <div>
+                            <p className="text-xs text-[#858995]">Total</p>
+                            <p className="mt-1 text-lg font-black">
+                              {money(result.total)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-[#858995]">Ahorro</p>
+                            <p
+                              className={`mt-1 text-lg font-black ${result.saving > 0 ? "text-[#087f5b]" : "text-[#98a0ad]"}`}
+                            >
+                              {result.saving > 0 ? money(result.saving) : "—"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-[#858995]">
+                              Ahorro anual
+                            </p>
+                            <p
+                              className={`mt-1 text-lg font-black ${result.annualSaving > 0 ? "text-[#087f5b]" : "text-[#98a0ad]"}`}
+                            >
+                              {result.annualSaving > 0
+                                ? money(result.annualSaving)
+                                : "—"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-[#858995]">Energía</p>
+                            <p className="mt-1 text-lg font-black">
+                              {money(result.energy)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#eef0f3] pt-4">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOffer(result)}
+                          className="rounded-xl bg-[#11183c] px-4 py-2 text-xs font-bold text-white"
+                        >
+                          Ver detalle
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
                             setSelectedSnapshotOffers((current) =>
                               current.includes(result.offerName)
                                 ? current.filter(
                                     (name) => name !== result.offerName,
                                   )
                                 : [...current, result.offerName],
-                            );
-                          }}
-                          className="h-4 w-4 accent-[#11183c]"
-                        />
-                        <span
-                          className="h-2.5 w-2.5 shrink-0 rounded-full"
-                          style={{
-                            backgroundColor: highlight?.accent ?? "#98a0ad",
-                          }}
-                        />
-                        <span className="min-w-0 flex-1 text-sm font-bold text-[#12141c]">
-                          {getDisplayOfferName(result.offerName)}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-extrabold text-[#12141c]">
-                      Compartir comparativa
-                    </p>
-                    <p className="mt-1 text-sm leading-5 text-[#777b87]">
-                      Crea una imagen con todas las ofertas y precios para
-                      compartirla mediante un código QR.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleSnapshot}
-                    disabled={creatingSnapshot}
-                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#11183c] px-5 py-3 font-bold text-white transition hover:bg-[#1b2559] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {creatingSnapshot ? (
-                      <>
-                        <svg
-                          className="h-4 w-4 animate-spin"
-                          viewBox="0 0 24 24"
-                          fill="none"
+                            )
+                          }
+                          className="rounded-xl border border-[#dfe2e8] px-4 py-2 text-xs font-bold text-[#12141c]"
                         >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="9"
-                            stroke="currentColor"
-                            strokeWidth="3"
-                          />
-                          <path
-                            className="opacity-90"
-                            d="M21 12a9 9 0 0 0-9-9"
-                            stroke="currentColor"
-                            strokeWidth="3"
-                            strokeLinecap="round"
-                          />
-                        </svg>
-                        Creando snapshot...
-                      </>
-                    ) : (
-                      <>
-                        <svg
-                          className="h-4 w-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M3 7h3l2-2h8l2 2h3v12H3V7z"
-                          />
-                          <circle cx="12" cy="13" r="3" />
-                        </svg>
-                        Compartir snapshot
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {snapshotError && (
-                  <p className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
-                    {snapshotError}
-                  </p>
-                )}
+                          {selected
+                            ? "Quitar de compartir"
+                            : "Añadir a compartir"}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             </section>
           )}
 
-          {/* NO RESULTS */}
-          {submitted && tariff !== "3.0TD" && results.length === 0 && (
-            <div className="mt-8 rounded-2xl border border-[#e4e6ec] bg-white p-8 text-center">
-              <p className="font-bold text-[#12141c]">
-                No se han encontrado ofertas.
-              </p>
-
-              <p className="mt-2 text-sm text-[#777b87]">
-                Comprueba los datos introducidos y vuelve a calcular.
-              </p>
+          {submitted && results.length === 0 && (
+            <div className="mt-10 rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm leading-6 text-amber-900">
+              No hay ofertas compatibles con la tarifa detectada. Revisa los
+              periodos de potencia y consumo y comprueba que los datos de la
+              factura estén completos.
             </div>
           )}
         </div>
       </main>
 
-      {/* MODAL */}
       {selectedOffer && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[#12141c]/45 p-4 backdrop-blur-sm"
-          onMouseDown={() => setSelectedOffer(null)}
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-4 sm:items-center"
+          onClick={() => setSelectedOffer(null)}
         >
           <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="offer-modal-title"
-            className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white shadow-[0_30px_100px_rgba(0,0,0,.22)]"
-            onMouseDown={(event) => event.stopPropagation()}
+            className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
           >
-            {(() => {
-              const highlight = getOfferHighlight(selectedOffer.offerName);
-
-              return (
-                <>
-                  {/* MODAL HEADER */}
-                  <div
-                    className="relative overflow-hidden rounded-t-3xl border-b border-black/5 px-6 py-6 sm:px-8"
-                    style={{
-                      backgroundColor: highlight?.background ?? "#f8f9fb",
-                    }}
-                  >
-                    {highlight && (
-                      <div
-                        className="absolute left-0 top-0 h-1.5 w-full"
-                        style={{
-                          backgroundColor: highlight.accent,
-                        }}
-                      />
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => setSelectedOffer(null)}
-                      className="absolute right-5 top-5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/80 text-[#5b5f6b] transition hover:bg-white hover:text-[#12141c]"
-                      aria-label="Cerrar"
-                    >
-                      <svg
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M6 6l12 12M18 6L6 18"
-                        />
-                      </svg>
-                    </button>
-
-                    <div className="flex items-start gap-4 pr-10">
-                      <span
-                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl"
-                        style={{
-                          backgroundColor:
-                            highlight?.iconBackground ?? "#f1f2f5",
-                          color: highlight?.accent ?? "#626775",
-                        }}
-                      >
-                        <OfferIcon offerName={selectedOffer.offerName} />
-                      </span>
-
-                      <div>
-                        <p className="text-[10px] font-extrabold uppercase tracking-[2px] text-[#8a7b4f]">
-                          Oferta Iberdrola
-                        </p>
-
-                        <h2
-                          id="offer-modal-title"
-                          className="mt-1 text-2xl font-black tracking-tight text-[#12141c]"
-                        >
-                          {getDisplayOfferName(selectedOffer.offerName)}
-                        </h2>
-
-                        {selectedOffer.duration && (
-                          <p className="mt-2 text-sm text-[#777b87]">
-                            Duración: {selectedOffer.duration}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* MODAL CONTENT */}
-                  <div className="p-6 sm:p-8">
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-2xl bg-[#f7f7f9] p-4">
-                        <p className="text-[10px] font-extrabold uppercase tracking-[1px] text-[#858995]">
-                          Precio actual
-                        </p>
-
-                        <p className="mt-2 text-xl font-bold text-[#777b87]">
-                          {money(parsed!.totalFacturaActual)}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl bg-[#f7f7f9] p-4">
-                        <p className="text-[10px] font-extrabold uppercase tracking-[1px] text-[#858995]">
-                          Nuevo precio
-                        </p>
-
-                        <p className="mt-2 text-xl font-black text-[#12141c]">
-                          {money(selectedOffer.total)}
-                        </p>
-                      </div>
-
-                      <div
-                        className="rounded-2xl p-4"
-                        style={{
-                          backgroundColor:
-                            highlight?.iconBackground ?? "#EAF6EC",
-                        }}
-                      >
-                        <p className="text-[10px] font-extrabold uppercase tracking-[1px] text-[#858995]">
-                          Ahorro
-                        </p>
-
-                        <p
-                          className="mt-2 text-xl font-black"
-                          style={{
-                            color: highlight?.accent ?? "#4F8A5B",
-                          }}
-                        >
-                          {money(selectedOffer.saving)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* DETAIL TABLE */}
-                    <div className="mt-7">
-                      <h3 className="text-base font-extrabold text-[#12141c]">
-                        Detalle de la oferta
-                      </h3>
-
-                      <div className="mt-3 divide-y divide-[#eef0f3] rounded-2xl border border-[#e4e6ec]">
-                        <div className="flex items-center justify-between gap-4 px-4 py-3">
-                          <span className="text-sm text-[#777b87]">
-                            Coste de energía
-                          </span>
-
-                          <strong className="text-sm text-[#12141c]">
-                            {money(selectedOffer.energy)}
-                          </strong>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-4 px-4 py-3">
-                          <span className="text-sm text-[#777b87]">
-                            Coste de potencia
-                          </span>
-
-                          <strong className="text-sm text-[#12141c]">
-                            {money(selectedOffer.power)}
-                          </strong>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-4 px-4 py-3">
-                          <span className="text-sm text-[#777b87]">
-                            Reactiva + Bono Social
-                          </span>
-
-                          <strong className="text-sm text-[#12141c]">
-                            {money(selectedOffer.reactivaBonoSocial)}
-                          </strong>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-4 px-4 py-3">
-                          <span className="text-sm text-[#777b87]">
-                            Impuesto eléctrico
-                          </span>
-
-                          <strong className="text-sm text-[#12141c]">
-                            {money(selectedOffer.electricityTax)}
-                          </strong>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-4 px-4 py-3">
-                          <span className="text-sm text-[#777b87]">
-                            Otros conceptos
-                          </span>
-
-                          <strong className="text-sm text-[#12141c]">
-                            {money(selectedOffer.otherConcepts)}
-                          </strong>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-4 px-4 py-3">
-                          <span className="text-sm text-[#777b87]">
-                            Pack Iberdrola Hogar
-                          </span>
-
-                          <div className="text-right">
-                            <strong className="block text-sm text-[#12141c]">
-                              {money(selectedOffer.packNet)}
-                            </strong>
-                            <span className="text-[11px] text-[#858995]">
-                              {money(selectedOffer.packPrice)} −{" "}
-                              {(selectedOffer.packDiscount * 100).toFixed(0)}%
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-4 px-4 py-3">
-                          <span className="text-sm text-[#777b87]">
-                            Alquiler de equipo
-                          </span>
-
-                          <strong className="text-sm text-[#12141c]">
-                            {money(selectedOffer.meterRental)}
-                          </strong>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-4 px-4 py-3">
-                          <span className="text-sm text-[#777b87]">
-                            IVA / IGIC
-                          </span>
-
-                          <strong className="text-sm text-[#12141c]">
-                            {money(selectedOffer.iva)}
-                          </strong>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-4 bg-[#fafbfc] px-4 py-4">
-                          <span className="font-bold text-[#12141c]">
-                            Total estimado
-                          </span>
-
-                          <strong className="text-lg font-black text-[#12141c]">
-                            {money(selectedOffer.total)}
-                          </strong>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* PROFILE */}
-                    <div className="mt-6 rounded-2xl border border-[#e4e6ec] bg-[#fafbfc] p-5">
-                      <p className="text-[10px] font-extrabold uppercase tracking-[1.5px] text-[#858995]">
-                        Perfil utilizado
-                      </p>
-
-                      <div className="mt-3 grid grid-cols-3 gap-3">
-                        <div className="rounded-xl bg-white p-3 text-center">
-                          <p className="text-xs text-[#858995]">P1</p>
-
-                          <p className="mt-1 font-black text-[#12141c]">
-                            {form.perfilP1}%
-                          </p>
-                        </div>
-
-                        <div className="rounded-xl bg-white p-3 text-center">
-                          <p className="text-xs text-[#858995]">P2</p>
-
-                          <p className="mt-1 font-black text-[#12141c]">
-                            {form.perfilP2}%
-                          </p>
-                        </div>
-
-                        <div className="rounded-xl bg-white p-3 text-center">
-                          <p className="text-xs text-[#858995]">P3</p>
-
-                          <p className="mt-1 font-black text-[#12141c]">
-                            {form.perfilP3}%
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* CONDITIONS */}
-                    <div className="mt-6 rounded-2xl bg-[#fafbfc] p-5">
-                      <p className="text-[10px] font-extrabold uppercase tracking-[1.5px] text-[#858995]">
-                        Condiciones
-                      </p>
-
-                      <p className="mt-2 text-sm leading-6 text-[#5b5f6b]">
-                        {selectedOffer.discountText ||
-                          "No hay información adicional disponible para esta oferta."}
-                      </p>
-
-                      <p className="mt-3 text-xs leading-5 text-[#858995]">
-                        Esta comparativa incluye siempre el Pack Iberdrola
-                        Hogar: 5% adicional de descuento en energía y 50% de
-                        descuento sobre el servicio, según la configuración de
-                        la hoja Calculo PyS.
-                      </p>
-                    </div>
-
-                    {/* ANNUAL SAVING */}
-                    <div
-                      className="mt-4 flex items-center justify-between rounded-2xl p-5"
-                      style={{
-                        backgroundColor: highlight?.background ?? "#EAF6EC",
-                      }}
-                    >
-                      <div>
-                        <p className="text-sm font-bold text-[#12141c]">
-                          Ahorro estimado anual
-                        </p>
-
-                        <p className="mt-1 text-xs text-[#777b87]">
-                          Estimación basada en los datos introducidos.
-                        </p>
-                      </div>
-
-                      <p
-                        className="text-2xl font-black"
-                        style={{
-                          color: highlight?.accent ?? "#4F8A5B",
-                        }}
-                      >
-                        {money(selectedOffer.annualSaving)}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setSelectedOffer(null)}
-                      className="mt-6 w-full cursor-pointer rounded-2xl bg-[#11183c] px-5 py-3.5 font-bold text-white transition hover:bg-[#1b2559]"
-                    >
-                      Cerrar
-                    </button>
-                  </div>
-                </>
-              );
-            })()}
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[2px] text-[#8a7b4f]">
+                  Detalle
+                </p>
+                <h2 className="mt-2 text-2xl font-black">
+                  {getDisplayOfferName(selectedOffer.offerName)}
+                </h2>
+                <p className="mt-1 text-sm text-[#777b87]">
+                  {selectedOffer.tariff}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedOffer(null)}
+                className="rounded-xl bg-[#f5f6f9] px-3 py-2 text-sm font-bold"
+              >
+                Cerrar
+              </button>
+            </div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {[
+                [
+                  "Energía antes de descuento",
+                  money(selectedOffer.energyBeforeDiscount),
+                ],
+                ["Energía", money(selectedOffer.energy)],
+                [
+                  "Potencia antes de descuento",
+                  money(selectedOffer.powerBeforeDiscount),
+                ],
+                ["Potencia", money(selectedOffer.power)],
+                ["Excesos de potencia", money(selectedOffer.excessPower)],
+                ["Impuesto eléctrico", money(selectedOffer.electricityTax)],
+                ["Pack neto", money(selectedOffer.packNet)],
+                ["IVA / IGIC", money(selectedOffer.iva)],
+                ["Total", money(selectedOffer.total)],
+                ["Ahorro", money(selectedOffer.saving)],
+                ["Ahorro anual", money(selectedOffer.annualSaving)],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl bg-[#f7f8fa] p-4">
+                  <p className="text-xs text-[#858995]">{label}</p>
+                  <p className="mt-1 font-extrabold">{value}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-5 text-xs leading-5 text-[#777b87]">
+              {selectedOffer.discountText}
+            </p>
           </div>
         </div>
       )}
-      <style jsx global>{`
-        @keyframes aiProgress {
-          0% {
-            transform: translateX(-120%);
-          }
-          100% {
-            transform: translateX(260%);
-          }
-        }
-        @keyframes aiOrb {
-          0%,
-          100% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(17, 24, 60, 0.14);
-          }
-          50% {
-            transform: scale(1.08);
-            box-shadow: 0 0 0 7px rgba(17, 24, 60, 0);
-          }
-        }
-        @keyframes aiFieldIn {
-          0% {
-            opacity: 0.55;
-            transform: translateY(5px) scale(0.985);
-            box-shadow: 0 0 0 0 rgba(27, 37, 89, 0);
-          }
-          35% {
-            opacity: 1;
-            transform: translateY(0) scale(1.012);
-            box-shadow:
-              0 0 0 4px rgba(27, 37, 89, 0.1),
-              0 10px 28px rgba(27, 37, 89, 0.1);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-            box-shadow:
-              0 0 0 0 rgba(27, 37, 89, 0),
-              0 2px 10px rgba(27, 37, 89, 0.035);
-          }
-        }
-        @keyframes aiInputShine {
-          0% {
-            background-position: 120% 0;
-          }
-          100% {
-            background-position: 0% 0;
-          }
-        }
-        @keyframes aiSectionGlow {
-          0%,
-          100% {
-            box-shadow: 0 12px 35px rgba(18, 20, 28, 0.055);
-          }
-          50% {
-            box-shadow: 0 18px 50px rgba(27, 37, 89, 0.1);
-          }
-        }
-        @keyframes aiStatusIn {
-          from {
-            opacity: 0;
-            transform: translateY(-7px) scale(0.97);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-        .ai-progress-bar {
-          width: 42%;
-          animation: aiProgress 1.25s ease-in-out infinite;
-        }
-        .ai-orb {
-          animation: aiOrb 1.35s ease-in-out infinite;
-        }
-        .ai-status-pill {
-          animation: aiStatusIn 0.35s ease-out both;
-        }
-        .ai-form-active > section {
-          animation: aiSectionGlow 1.8s ease-in-out infinite;
-        }
-        [data-ai-key][data-ai-filled="true"] {
-          animation: aiFieldIn 0.62s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-        }
-        [data-ai-key][data-ai-filled="true"] input {
-          border-color: rgba(27, 37, 89, 0.28);
-          background: linear-gradient(90deg, #fff, #f8f9ff, #fff);
-          background-size: 220% 100%;
-          animation: aiInputShine 1.1s ease-out both;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .ai-progress-bar,
-          .ai-orb,
-          .ai-status-pill,
-          .ai-form-active > section,
-          [data-ai-key][data-ai-filled="true"],
-          [data-ai-key][data-ai-filled="true"] input {
-            animation: none !important;
-          }
-        }
-      `}</style>
     </>
   );
 }
