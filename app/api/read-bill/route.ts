@@ -71,9 +71,14 @@ export async function POST(request: Request) {
     }
 
     // Multipart uploads avoid JSON/base64 payload inflation between browser and server.
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const buffer = new Uint8Array(await file.arrayBuffer());
+
     const rawFields = await extractInvoice([
-      { data: buffer.toString("base64"), mimeType },
+      {
+        data: buffer,
+        mimeType,
+        fileName: file.name,
+      },
     ]);
 
     const normalized = normalizeInvoiceFields(

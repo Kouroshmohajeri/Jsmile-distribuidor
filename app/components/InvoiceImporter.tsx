@@ -17,16 +17,6 @@ const MAX_FILE_MB = 20;
 const ACCEPTED_FILES =
   ".pdf,application/pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif";
 
-const EXTENSION_TYPES: Record<string, string> = {
-  pdf: "application/pdf",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  heic: "image/heic",
-  heif: "image/heif",
-};
-
 export default function InvoiceImporter({ onExtracted }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -44,20 +34,33 @@ export default function InvoiceImporter({ onExtracted }: Props) {
     setLoading(true);
 
     try {
-      if (file.size === 0) throw new Error("El archivo está vacío.");
+      if (!file.size) throw new Error("El archivo está vacío.");
       if (file.size > MAX_FILE_MB * 1024 * 1024) {
         throw new Error(`La factura no puede superar ${MAX_FILE_MB} MB.`);
       }
 
-      const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
-      const mimeType = EXTENSION_TYPES[extension];
-      if (!mimeType) {
+      const extension = file.name.split(".").pop()?.toLowerCase();
+      const mimeByExtension: Record<string, string> = {
+        pdf: "application/pdf",
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        webp: "image/webp",
+        heic: "image/heic",
+        heif: "image/heif",
+      };
+      const mimeType =
+        file.type && file.type !== "application/octet-stream"
+          ? file.type.toLowerCase()
+          : mimeByExtension[extension || ""];
+
+      if (!mimeType || !mimeByExtension[extension || ""]) {
         throw new Error(
           "Selecciona una factura PDF o una imagen JPG, PNG, WEBP, HEIC o HEIF.",
         );
       }
 
-      // Send the binary file as multipart FormData: no FileReader and no base64 JSON body.
+      // Send original bytes; no browser-side base64 conversion.
       const formData = new FormData();
       formData.append("file", file, file.name);
 
@@ -121,7 +124,8 @@ export default function InvoiceImporter({ onExtracted }: Props) {
 
       {loading && (
         <div className="mt-4 rounded-xl bg-[#eef0f8] px-4 py-3 text-sm text-[#1b2559]">
-          Gemini está analizando la factura y extrayendo los datos...
+          Gemini está analizando el documento y extrayendo los datos de la
+          factura...
         </div>
       )}
 
