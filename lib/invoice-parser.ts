@@ -76,17 +76,6 @@ function money(value: unknown): string {
   return number === null ? "" : Number(number.toFixed(2)).toString();
 }
 
-function calculateProfile(p1: number, p2: number, p3: number) {
-  const total = p1 + p2 + p3;
-  if (total <= 0) return null;
-
-  const a = Number(((p1 / total) * 100).toFixed(2));
-  const b = Number(((p2 / total) * 100).toFixed(2));
-  const c = Number((100 - a - b).toFixed(2));
-
-  return [a, b, c];
-}
-
 export function normalizeInvoiceFields(
   input: Partial<Record<keyof InvoiceFields, unknown>>,
 ): ExtractionResult {
@@ -96,9 +85,9 @@ export function normalizeInvoiceFields(
     consumoP1: format(input.consumoP1, 3),
     consumoP2: format(input.consumoP2, 3),
     consumoP3: format(input.consumoP3, 3),
-    perfilP1: format(input.perfilP1, 2),
-    perfilP2: format(input.perfilP2, 2),
-    perfilP3: format(input.perfilP3, 2),
+    perfilP1: "20",
+    perfilP2: "80",
+    perfilP3: "0",
     iva: format(input.iva, 6),
     ie: format(input.ie, 6),
     diasFactura:
@@ -116,28 +105,17 @@ export function normalizeInvoiceFields(
   const p3 = cleanNumber(fields.consumoP3);
   const warnings: string[] = [];
 
-  if (p1 !== null && p2 !== null && p3 !== null) {
-    const profile = calculateProfile(p1, p2, p3);
-
-    if (profile) {
-      fields.perfilP1 = profile[0].toFixed(2);
-      fields.perfilP2 = profile[1].toFixed(2);
-      fields.perfilP3 = profile[2].toFixed(2);
-    }
-  } else {
-    warnings.push("No se han podido extraer los tres periodos de consumo.");
+  if (p1 === null || p2 === null || p3 === null) {
+    warnings.push(
+      "No se han podido extraer los tres periodos de consumo facturado (kWh). Revisa la tabla de consumo de la factura.",
+    );
   }
 
-  const profileTotal =
-    (cleanNumber(fields.perfilP1) ?? 0) +
-    (cleanNumber(fields.perfilP2) ?? 0) +
-    (cleanNumber(fields.perfilP3) ?? 0);
-
-  const profileMatches = Math.abs(profileTotal - 100) < 0.011;
-
-  if (!profileMatches) {
-    warnings.push("El perfil P1/P2/P3 no suma exactamente 100%.");
-  }
+  // Profile is a fixed business rule, independent of invoice consumption.
+  fields.perfilP1 = "20";
+  fields.perfilP2 = "80";
+  fields.perfilP3 = "0";
+  const profileMatches = true;
 
   const required: Array<[keyof InvoiceFields, string]> = [
     ["potenciaP1", "potencia P1"],

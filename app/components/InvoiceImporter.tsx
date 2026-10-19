@@ -14,7 +14,18 @@ type ApiResponse = {
 };
 
 const MAX_FILE_MB = 20;
-const MAX_PAGES = 12;
+const ACCEPTED_FILES =
+  ".pdf,application/pdf,.jpg,.jpeg,.png,.webp,.heic,.heif,image/jpeg,image/png,image/webp,image/heic,image/heif";
+
+const EXTENSION_TYPES: Record<string, string> = {
+  pdf: "application/pdf",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  heic: "image/heic",
+  heif: "image/heif",
+};
 
 export default function InvoiceImporter({ onExtracted }: Props) {
   const [loading, setLoading] = useState(false);
@@ -23,7 +34,8 @@ export default function InvoiceImporter({ onExtracted }: Props) {
   const [fileName, setFileName] = useState("");
 
   async function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const input = event.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
 
     setError("");
@@ -32,93 +44,48 @@ export default function InvoiceImporter({ onExtracted }: Props) {
     setLoading(true);
 
     try {
-      if (file.type !== "application/pdf") {
-        throw new Error("Selecciona un archivo PDF.");
-      }
-
+      if (file.size === 0) throw new Error("El archivo está vacío.");
       if (file.size > MAX_FILE_MB * 1024 * 1024) {
         throw new Error(`La factura no puede superar ${MAX_FILE_MB} MB.`);
       }
 
-      const arrayBuffer = await file.arrayBuffer();
-
-      const pdfjs = await import("pdfjs-dist");
-
-      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-        "pdfjs-dist/build/pdf.worker.min.mjs",
-        import.meta.url,
-      ).toString();
-
-      const pdf = await pdfjs.getDocument({
-        data: new Uint8Array(arrayBuffer),
-      }).promise;
-
-      if (pdf.numPages > MAX_PAGES) {
+      const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+      const mimeType = EXTENSION_TYPES[extension];
+      if (!mimeType) {
         throw new Error(
-          `La factura tiene ${pdf.numPages} páginas. Se admiten hasta ${MAX_PAGES}.`,
+          "Selecciona una factura PDF o una imagen JPG, PNG, WEBP, HEIC o HEIF.",
         );
       }
 
-      const pages: string[] = [];
-
-      // Send every page, not only page 1.
-      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-        const page = await pdf.getPage(pageNumber);
-        const viewport = page.getViewport({ scale: 1.8 });
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
-
-        if (!context) {
-          throw new Error("No se pudo inicializar el renderizado del PDF.");
-        }
-
-        canvas.width = Math.ceil(viewport.width);
-        canvas.height = Math.ceil(viewport.height);
-
-        await page.render({
-          canvasContext: context,
-          viewport,
-        } as any).promise;
-
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
-        const base64Image = dataUrl.split(",")[1];
-
-        if (!base64Image) {
-          throw new Error(`No se pudo convertir la página ${pageNumber}.`);
-        }
-
-        pages.push(base64Image);
-        page.cleanup();
-      }
+      // Send the binary file as multipart FormData: no FileReader and no base64 JSON body.
+      const formData = new FormData();
+      formData.append("file", file, file.name);
 
       const response = await fetch("/api/read-bill", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pages }),
+        body: formData,
       });
-
-      const data = (await response.json().catch(() => ({}))) as ApiResponse;
+      const data = (await response.json()) as ApiResponse;
 
       if (!response.ok) {
         throw new Error(
-          data.error || "Error en el servidor al analizar la factura con IA.",
+          data.error || "Error al analizar la factura con Gemini.",
         );
       }
-
       if (!data.fields) {
-        throw new Error("La IA no devolvió datos de factura válidos.");
+        throw new Error("Gemini no devolvió datos de factura válidos.");
       }
 
       onExtracted(data.fields as InvoiceFields);
       setWarnings(data.warnings ?? []);
     } catch (err) {
-      console.error(err);
+      console.error("Invoice import error:", err);
       setError(
         err instanceof Error ? err.message : "No se ha podido leer la factura.",
       );
     } finally {
       setLoading(false);
-      event.target.value = "";
+      input.value = "";
     }
   }
 
@@ -130,16 +97,15 @@ export default function InvoiceImporter({ onExtracted }: Props) {
             Importar factura
           </p>
           <p className="mt-1 text-sm leading-5 text-[#777b87]">
-            Sube tu factura PDF y analizaremos todas sus páginas para rellenar
-            automáticamente los campos.
+            Sube una factura PDF o una imagen para extraer automáticamente los
+            datos de electricidad.
           </p>
         </div>
-
         <label className="inline-flex cursor-pointer items-center justify-center rounded-2xl bg-[#11183c] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1b2559]">
-          {loading ? "Analizando factura..." : "Subir factura PDF"}
+          {loading ? "Analizando factura..." : "Subir factura"}
           <input
             type="file"
-            accept="application/pdf,.pdf"
+            accept={ACCEPTED_FILES}
             className="hidden"
             disabled={loading}
             onChange={handleFile}
@@ -155,12 +121,15 @@ export default function InvoiceImporter({ onExtracted }: Props) {
 
       {loading && (
         <div className="mt-4 rounded-xl bg-[#eef0f8] px-4 py-3 text-sm text-[#1b2559]">
-          Gemini está leyendo la factura completa y comprobando los valores.
+          Gemini está analizando la factura y extrayendo los datos...
         </div>
       )}
 
       {error && (
-        <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm leading-5 text-red-700">
+        <div
+          role="alert"
+          className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm leading-5 text-red-700"
+        >
           {error}
         </div>
       )}
@@ -179,9 +148,7 @@ export default function InvoiceImporter({ onExtracted }: Props) {
       )}
 
       <p className="mt-4 text-xs leading-5 text-[#858995]">
-        La factura se procesa en el servidor mediante Gemini a través de
-        OmniRoute. Los perfiles P1/P2/P3 se calculan a partir del consumo
-        extraído y se validan antes de rellenar el formulario.
+        Formatos admitidos: PDF, JPG, JPEG, PNG, WEBP, HEIC y HEIF.
       </p>
     </div>
   );
