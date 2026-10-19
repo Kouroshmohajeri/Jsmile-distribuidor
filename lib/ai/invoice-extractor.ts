@@ -171,7 +171,7 @@ export async function extractInvoice(
         },
       },
     });
-
+    // thinking low
     if (!result.text) {
       throw new Error("Gemini no devolvió contenido.");
     }
