@@ -143,8 +143,8 @@ const initial: FormState = {
   consumoP4: "",
   consumoP5: "",
   consumoP6: "",
-  perfilP1: "55",
-  perfilP2: "45",
+  perfilP1: "20",
+  perfilP2: "80",
   perfilP3: "0",
   perfilP4: "0",
   perfilP5: "0",
@@ -311,19 +311,19 @@ export default function ComparativaPage() {
     const n = (key: string) => Number(form[key]);
     const periods = PERIODS.map((period) => n(`potencia${period}`));
     const consumption = PERIODS.map((period) => n(`consumo${period}`));
-    const profile = PERIODS.map((period) => n(`perfil${period}`) / 100);
-    const required = requiredPeriods(tariff);
-
+    const profile = [0.2, 0.8, 0, 0, 0, 0];
     if (!tariff) return null;
-    for (let index = 0; index < required; index++) {
+    for (const period of ["P1", "P2"] as const) {
       if (
-        !Number.isFinite(periods[index]) ||
-        !Number.isFinite(consumption[index])
+        form[`potencia${period}`] === "" ||
+        !Number.isFinite(n(`potencia${period}`))
       )
         return null;
+    }
+    for (const period of ["P1", "P2", "P3"] as const) {
       if (
-        form[`potencia${PERIODS[index]}`] === "" ||
-        form[`consumo${PERIODS[index]}`] === ""
+        form[`consumo${period}`] === "" ||
+        !Number.isFinite(n(`consumo${period}`))
       )
         return null;
     }
@@ -353,23 +353,21 @@ export default function ComparativaPage() {
     };
   }, [form, tariff]);
 
-  const profileTotal = PERIODS.reduce(
-    (sum, period) => sum + Number(form[`perfil${period}`] || 0),
-    0,
-  );
-  const validProfile = !form.usarPerfil || Math.abs(profileTotal - 100) < 0.001;
+  const validProfile = true;
 
   const results = useMemo(() => {
     if (!submitted || !parsed) return [];
     const compatibleOffers = IBERDROLA_OFFERS.filter(
       (offer) => offer.tariff === parsed.tariff,
     );
-    return calculateAllOffers(parsed, compatibleOffers).sort((a, b) => {
-      const priorityA = getOfferPriority(a.offerName);
-      const priorityB = getOfferPriority(b.offerName);
-      if (priorityA !== priorityB) return priorityA - priorityB;
-      return a.offerName.localeCompare(b.offerName, "es");
-    });
+    return calculateAllOffers(parsed, compatibleOffers)
+      .filter((result) => getOfferPriority(result.offerName) < 100)
+      .sort((a, b) => {
+        const priorityA = getOfferPriority(a.offerName);
+        const priorityB = getOfferPriority(b.offerName);
+        if (priorityA !== priorityB) return priorityA - priorityB;
+        return a.offerName.localeCompare(b.offerName, "es");
+      });
   }, [submitted, parsed]);
 
   const canCalculate =
@@ -577,7 +575,7 @@ export default function ComparativaPage() {
               description="Indica la potencia contratada en cada periodo."
             >
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {PERIODS.map((period) => (
+                {(["P1", "P2"] as const).map((period) => (
                   <Field
                     key={period}
                     dataAiKey={`potencia${period}`}
@@ -625,7 +623,7 @@ export default function ComparativaPage() {
               description="Introduce el consumo de la factura en cada periodo."
             >
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {PERIODS.map((period) => (
+                {(["P1", "P2", "P3"] as const).map((period) => (
                   <Field
                     key={period}
                     dataAiKey={`consumo${period}`}
@@ -640,35 +638,18 @@ export default function ComparativaPage() {
 
             <Section
               title="Perfil de consumo"
-              description="Solo se utiliza en ofertas de dos precios. Debe sumar 100%."
+              description="Perfil fijo aplicado a las ofertas de dos precios."
             >
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {PERIODS.map((period) => (
-                  <Field
-                    key={period}
-                    dataAiKey={`perfil${period}`}
-                    label={`Perfil ${period}`}
-                    value={form[`perfil${period}`]}
-                    onChange={(value) => update(`perfil${period}`, value)}
-                    suffix="%"
-                  />
-                ))}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-xl bg-[#f7f8fa] p-4">
+                  <p className="text-sm text-[#777b87]">P1</p>
+                  <p className="mt-1 text-xl font-black">20%</p>
+                </div>
+                <div className="rounded-xl bg-[#f7f8fa] p-4">
+                  <p className="text-sm text-[#777b87]">P2</p>
+                  <p className="mt-1 text-xl font-black">80%</p>
+                </div>
               </div>
-              <label className="mt-4 flex items-center gap-2 text-sm font-medium text-[#5b5f6b]">
-                <input
-                  type="checkbox"
-                  checked={form.usarPerfil !== "false"}
-                  onChange={(event) =>
-                    update("usarPerfil", String(event.target.checked))
-                  }
-                />
-                Usar perfil editable para ofertas de 2 precios
-              </label>
-              {!validProfile && (
-                <p className="mt-3 text-sm text-red-600">
-                  El perfil debe sumar 100%.
-                </p>
-              )}
             </Section>
 
             <Section
@@ -711,27 +692,6 @@ export default function ComparativaPage() {
                   value={form.alquilerEquipo}
                   onChange={(value) => update("alquilerEquipo", value)}
                   suffix="€"
-                />
-                <Field
-                  dataAiKey="excesosPotencia"
-                  label="Excesos de potencia"
-                  value={form.excesosPotencia}
-                  onChange={(value) => update("excesosPotencia", value)}
-                  suffix="€"
-                />
-                <Field
-                  dataAiKey="otrosDescuentos"
-                  label="Otros descuentos"
-                  value={form.otrosDescuentos}
-                  onChange={(value) => update("otrosDescuentos", value)}
-                  suffix="%"
-                />
-                <Field
-                  dataAiKey="otrosCashbacks"
-                  label="Cashback anual"
-                  value={form.otrosCashbacks}
-                  onChange={(value) => update("otrosCashbacks", value)}
-                  suffix="€/año"
                 />
               </div>
             </Section>
@@ -933,6 +893,18 @@ export default function ComparativaPage() {
             </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               {[
+                ...(["P1", "P2", "P3"] as const).map((period, index) => {
+                  const offer = IBERDROLA_OFFERS.find(
+                    (item) => item.id === selectedOffer.offerId,
+                  );
+                  const price = offer?.energyPrices[index];
+                  return [
+                    `Precio energía ${period}`,
+                    price == null
+                      ? "No aplicable"
+                      : `${price.toLocaleString("es-ES", { minimumFractionDigits: 4, maximumFractionDigits: 6 })} €/kWh`,
+                  ];
+                }),
                 [
                   "Energía antes de descuento",
                   money(selectedOffer.energyBeforeDiscount),
@@ -943,7 +915,6 @@ export default function ComparativaPage() {
                   money(selectedOffer.powerBeforeDiscount),
                 ],
                 ["Potencia", money(selectedOffer.power)],
-                ["Excesos de potencia", money(selectedOffer.excessPower)],
                 ["Impuesto eléctrico", money(selectedOffer.electricityTax)],
                 ["Pack neto", money(selectedOffer.packNet)],
                 ["IVA / IGIC", money(selectedOffer.iva)],
