@@ -302,7 +302,8 @@ body {
     -moz-appearance: textfield;
     appearance: textfield;
     transition:
-      border-color var(--cmp-dur-micro) var(--cmp-ease);
+      border-color var(--cmp-dur-micro) var(--cmp-ease),
+      color var(--cmp-dur-short) var(--cmp-ease);
   }
   .cmp-input::-webkit-outer-spin-button,
   .cmp-input::-webkit-inner-spin-button {
@@ -320,6 +321,37 @@ body {
   .cmp-input:disabled {
     background: var(--color-paper-3);
     cursor: not-allowed;
+  }
+  .cmp-input[data-clearing="true"] {
+    color: transparent;
+    transition: border-color var(--cmp-dur-micro) var(--cmp-ease);
+  }
+  .cmp-ghost {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: var(--radius-control);
+  }
+  .cmp-ghost-value {
+    position: absolute;
+    left: 17px;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    font-size: var(--fs-md);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-ink);
+  }
+  .cmp-ghost-wipe {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 2px;
+    background: var(--color-signal);
+    transform-origin: left;
   }
   .cmp-input-suffix {
     position: absolute;
@@ -372,6 +404,13 @@ body {
   }
 
   /* Summary aside */
+  .cmp-reset {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-rule);
+    min-height: 57px;
+  }
+
   .cmp-aside {
     padding: 24px;
   }

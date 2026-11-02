@@ -1,7 +1,15 @@
 "use client";
 
 import "./comparativa.css";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   AnimatePresence,
@@ -31,7 +39,32 @@ const money = (value: number) =>
     currency: "EUR",
   }).format(value);
 
+/** Order the fields clear in, top to bottom, so the wipe reads as one sweep. */
+const FIELD_ORDER = [
+  "potenciaP1",
+  "potenciaP2",
+  "consumoP1",
+  "consumoP2",
+  "consumoP3",
+  "diasFactura",
+  "totalFacturaActual",
+  "reactivaBonoSocial",
+  "otrosConceptos",
+  "alquilerEquipo",
+  "iva",
+  "ie",
+];
+const CLEAR_STAGGER = 0.035;
+const CLEAR_DURATION_MS = 900;
+
+/** Old values on their way out after a reset, keyed by field. */
+const ClearContext = createContext<{
+  ghosts: Record<string, string> | null;
+  runId: number;
+}>({ ghosts: null, runId: 0 });
+
 function Field({
+  fieldKey,
   label,
   value,
   onChange,
@@ -39,6 +72,7 @@ function Field({
   min = 0,
   step = "0.01",
 }: {
+  fieldKey: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
@@ -46,6 +80,10 @@ function Field({
   min?: number;
   step?: string;
 }) {
+  const { ghosts, runId } = useContext(ClearContext);
+  const ghost = ghosts?.[fieldKey];
+  const delay = Math.max(0, FIELD_ORDER.indexOf(fieldKey)) * CLEAR_STAGGER;
+
   return (
     <label className="cmp-field">
       <span className="cmp-field-label">{label}</span>
@@ -58,7 +96,31 @@ function Field({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           className="cmp-input"
+          data-clearing={ghost != null}
         />
+        {ghost != null && (
+          <span key={runId} className="cmp-ghost" aria-hidden="true">
+            <motion.span
+              className="cmp-ghost-value"
+              initial={{ opacity: 1, y: 0, x: 0 }}
+              animate={{ opacity: 0, y: -14, x: 6 }}
+              transition={{ duration: 0.32, delay, ease: [0.7, 0, 0.84, 0] }}
+            >
+              {ghost}
+            </motion.span>
+            <motion.span
+              className="cmp-ghost-wipe"
+              initial={{ scaleX: 0, opacity: 1 }}
+              animate={{ scaleX: [0, 1, 1], opacity: [1, 1, 0] }}
+              transition={{
+                duration: 0.5,
+                delay,
+                times: [0, 0.6, 1],
+                ease: "easeOut",
+              }}
+            />
+          </span>
+        )}
         {suffix && <span className="cmp-input-suffix">{suffix}</span>}
       </span>
     </label>
@@ -126,6 +188,25 @@ function BackIcon() {
       aria-hidden="true"
     >
       <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+function ResetIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <path d="M3 4v5h5" />
     </svg>
   );
 }
@@ -298,7 +379,70 @@ export default function ComparativaPage() {
   const update = (key: string, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
     setSubmitted(false);
+    setUndoForm(null);
+    setClearGhosts(null);
   };
+
+  const [undoForm, setUndoForm] = useState<FormState | null>(null);
+  const undoTimer = useRef<number | null>(null);
+  const isPristine = Object.keys(initial).every(
+    (key) => form[key] === initial[key],
+  );
+
+  useEffect(
+    () => () => {
+      if (undoTimer.current) window.clearTimeout(undoTimer.current);
+    },
+    [],
+  );
+
+  const [clearGhosts, setClearGhosts] = useState<Record<string, string> | null>(
+    null,
+  );
+  const [clearRun, setClearRun] = useState(0);
+  const clearTimer = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (clearTimer.current) window.clearTimeout(clearTimer.current);
+    },
+    [],
+  );
+
+  function handleReset() {
+    if (!reduced) {
+      const leaving: Record<string, string> = {};
+      FIELD_ORDER.forEach((key) => {
+        if (form[key] !== "" && form[key] !== initial[key])
+          leaving[key] = form[key];
+      });
+      setClearGhosts(leaving);
+      setClearRun((id) => id + 1);
+      if (clearTimer.current) window.clearTimeout(clearTimer.current);
+      clearTimer.current = window.setTimeout(
+        () => setClearGhosts(null),
+        CLEAR_DURATION_MS,
+      );
+    }
+    clearCalcTimers();
+    setCalculating(false);
+    setSubmitted(false);
+    setSelectedOffer(null);
+    setSelectedSnapshotOffers([]);
+    setSnapshotError("");
+    setUndoForm(form);
+    setForm(initial);
+    if (undoTimer.current) window.clearTimeout(undoTimer.current);
+    undoTimer.current = window.setTimeout(() => setUndoForm(null), 6000);
+  }
+
+  function handleUndoReset() {
+    if (!undoForm) return;
+    setClearGhosts(null);
+    setForm(undoForm);
+    setUndoForm(null);
+    if (undoTimer.current) window.clearTimeout(undoTimer.current);
+  }
 
   const tariff = useMemo(() => detectTariff(form), [form]);
 
@@ -565,119 +709,136 @@ export default function ComparativaPage() {
         </div>
 
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <div className="cmp-sheet">
-            <Group
-              title="Potencia contratada"
-              description="Indica la potencia contratada en cada periodo."
-            >
-              <div className="cmp-fields">
-                {(["P1", "P2"] as const).map((period) => (
-                  <Field
-                    key={period}
-                    label={`Potencia ${period}`}
-                    value={form[`potencia${period}`]}
-                    onChange={(value) => update(`potencia${period}`, value)}
-                    suffix="kW"
-                  />
-                ))}
-              </div>
-              <div className="mt-4 min-h-9">
-                <TariffChip tariff={tariff} />
-              </div>
-            </Group>
-
-            <Group
-              title="Consumo"
-              description="Introduce el consumo de la factura en cada periodo."
-            >
-              <div className="cmp-fields">
-                {(["P1", "P2", "P3"] as const).map((period) => (
-                  <Field
-                    key={period}
-                    label={`Consumo ${period}`}
-                    value={form[`consumo${period}`]}
-                    onChange={(value) => update(`consumo${period}`, value)}
-                    suffix="kWh"
-                  />
-                ))}
-              </div>
-            </Group>
-
-            <Group
-              title="Datos de la factura"
-              description="Introduce los importes del periodo facturado."
-            >
-              <div className="cmp-fields">
-                <Field
-                  label="Días facturados"
-                  value={form.diasFactura}
-                  onChange={(value) => update("diasFactura", value)}
-                  suffix="días"
-                  step="1"
-                />
-                <Field
-                  label="Total factura actual"
-                  value={form.totalFacturaActual}
-                  onChange={(value) => update("totalFacturaActual", value)}
-                  suffix="€"
-                />
-                <Field
-                  label="Reactiva / Bono Social"
-                  value={form.reactivaBonoSocial}
-                  onChange={(value) => update("reactivaBonoSocial", value)}
-                  suffix="€"
-                />
-                <Field
-                  label="Otros conceptos"
-                  value={form.otrosConceptos}
-                  onChange={(value) => update("otrosConceptos", value)}
-                  suffix="€"
-                />
-                <Field
-                  label="Alquiler equipo"
-                  value={form.alquilerEquipo}
-                  onChange={(value) => update("alquilerEquipo", value)}
-                  suffix="€"
-                />
-              </div>
-            </Group>
-
-            <Group
-              title="Impuestos"
-              description="Introduce los porcentajes que aparecen en la factura."
-            >
-              <div className="cmp-fields">
-                <Field
-                  label="IVA / IGIC"
-                  value={form.iva}
-                  onChange={(value) => update("iva", value)}
-                  suffix="%"
-                />
-                <Field
-                  label="Impuesto eléctrico (IE)"
-                  value={form.ie}
-                  onChange={(value) => update("ie", value)}
-                  suffix="%"
-                />
-              </div>
-            </Group>
-
-            <Group
-              title="Perfil de consumo"
-              description="Perfil fijo aplicado a las ofertas de dos precios."
-            >
-              <div className="cmp-split" role="img" aria-label="P1 20%, P2 80%">
-                <div style={{ flexBasis: "20%" }}>
-                  <span>P1</span>
-                  <span>20%</span>
+          <ClearContext.Provider
+            value={{ ghosts: clearGhosts, runId: clearRun }}
+          >
+            <div className="cmp-sheet">
+              <Group
+                title="Potencia contratada"
+                description="Indica la potencia contratada en cada periodo."
+              >
+                <div className="cmp-fields">
+                  {(["P1", "P2"] as const).map((period) => (
+                    <Field
+                      key={period}
+                      label={`Potencia ${period}`}
+                      value={form[`potencia${period}`]}
+                      fieldKey={`potencia${period}`}
+                      onChange={(value) => update(`potencia${period}`, value)}
+                      suffix="kW"
+                    />
+                  ))}
                 </div>
-                <div style={{ flexBasis: "80%" }}>
-                  <span>P2</span>
-                  <span>80%</span>
+                <div className="mt-4 min-h-9">
+                  <TariffChip tariff={tariff} />
                 </div>
-              </div>
-            </Group>
-          </div>
+              </Group>
+
+              <Group
+                title="Consumo"
+                description="Introduce el consumo de la factura en cada periodo."
+              >
+                <div className="cmp-fields">
+                  {(["P1", "P2", "P3"] as const).map((period) => (
+                    <Field
+                      key={period}
+                      label={`Consumo ${period}`}
+                      value={form[`consumo${period}`]}
+                      fieldKey={`consumo${period}`}
+                      onChange={(value) => update(`consumo${period}`, value)}
+                      suffix="kWh"
+                    />
+                  ))}
+                </div>
+              </Group>
+
+              <Group
+                title="Datos de la factura"
+                description="Introduce los importes del periodo facturado."
+              >
+                <div className="cmp-fields">
+                  <Field
+                    label="Días facturados"
+                    value={form.diasFactura}
+                    fieldKey={"diasFactura"}
+                    onChange={(value) => update("diasFactura", value)}
+                    suffix="días"
+                    step="1"
+                  />
+                  <Field
+                    label="Total factura actual"
+                    value={form.totalFacturaActual}
+                    fieldKey={"totalFacturaActual"}
+                    onChange={(value) => update("totalFacturaActual", value)}
+                    suffix="€"
+                  />
+                  <Field
+                    label="Reactiva / Bono Social"
+                    value={form.reactivaBonoSocial}
+                    fieldKey={"reactivaBonoSocial"}
+                    onChange={(value) => update("reactivaBonoSocial", value)}
+                    suffix="€"
+                  />
+                  <Field
+                    label="Otros conceptos"
+                    value={form.otrosConceptos}
+                    fieldKey={"otrosConceptos"}
+                    onChange={(value) => update("otrosConceptos", value)}
+                    suffix="€"
+                  />
+                  <Field
+                    label="Alquiler equipo"
+                    value={form.alquilerEquipo}
+                    fieldKey={"alquilerEquipo"}
+                    onChange={(value) => update("alquilerEquipo", value)}
+                    suffix="€"
+                  />
+                </div>
+              </Group>
+
+              <Group
+                title="Impuestos"
+                description="Introduce los porcentajes que aparecen en la factura."
+              >
+                <div className="cmp-fields">
+                  <Field
+                    label="IVA / IGIC"
+                    value={form.iva}
+                    fieldKey={"iva"}
+                    onChange={(value) => update("iva", value)}
+                    suffix="%"
+                  />
+                  <Field
+                    label="Impuesto eléctrico (IE)"
+                    value={form.ie}
+                    fieldKey={"ie"}
+                    onChange={(value) => update("ie", value)}
+                    suffix="%"
+                  />
+                </div>
+              </Group>
+
+              <Group
+                title="Perfil de consumo"
+                description="Perfil fijo aplicado a las ofertas de dos precios."
+              >
+                <div
+                  className="cmp-split"
+                  role="img"
+                  aria-label="P1 20%, P2 80%"
+                >
+                  <div style={{ flexBasis: "20%" }}>
+                    <span>P1</span>
+                    <span>20%</span>
+                  </div>
+                  <div style={{ flexBasis: "80%" }}>
+                    <span>P2</span>
+                    <span>80%</span>
+                  </div>
+                </div>
+              </Group>
+            </div>
+          </ClearContext.Provider>
 
           <aside className="cmp-sheet cmp-aside">
             <h2>Resumen</h2>
@@ -744,264 +905,322 @@ export default function ComparativaPage() {
                 calcular.
               </p>
             )}
+
+            <div className="cmp-reset">
+              <AnimatePresence mode="wait" initial={false}>
+                {undoForm ? (
+                  <motion.p
+                    key="undo"
+                    role="status"
+                    className="flex items-center justify-between gap-3 text-sm"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <span className="cmp-muted">Campos borrados</span>
+                    <button
+                      type="button"
+                      onClick={handleUndoReset}
+                      className="cmp-btn cmp-btn--quiet"
+                    >
+                      Deshacer
+                    </button>
+                  </motion.p>
+                ) : (
+                  <motion.div
+                    key="reset"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <button
+                      type="button"
+                      onClick={handleReset}
+                      disabled={isPristine || calculating}
+                      className="cmp-btn cmp-btn--quiet w-full"
+                    >
+                      <ResetIcon />
+                      <span>Restablecer campos</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </aside>
         </div>
 
-        {showResults && (
-          <section
-            id="comparativa-results"
-            className="mt-14 scroll-mt-6"
-            aria-live="polite"
-          >
-            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div className="max-w-2xl">
-                <h2 className="cmp-title-lg">Ofertas compatibles</h2>
-                <p className="cmp-muted mt-2 text-sm">
-                  Los importes se calculan con la estructura de periodos y
-                  reglas del nuevo modelo Excel.
-                </p>
-              </div>
-              {submitted && results.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleSnapshot}
-                  disabled={creatingSnapshot}
-                  aria-busy={creatingSnapshot}
-                  className="cmp-btn cmp-btn--secondary"
-                >
-                  {creatingSnapshot
-                    ? "Creando imagen..."
-                    : "Compartir comparativa"}
-                </button>
-              )}
-            </div>
-
-            {snapshotError && (
-              <p className="cmp-notice cmp-notice--error mb-4" role="alert">
-                {snapshotError}
-              </p>
-            )}
-
-            <AnimatePresence mode="wait">
-              {calculating && (
-                <motion.div
-                  key="loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0, transition: { duration: 0.12 } }}
-                >
-                  <AnimatePresence mode="wait">
-                    <motion.p
-                      key={calcMessage}
-                      className="cmp-muted mb-4 text-sm"
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      {calcMessage}
-                    </motion.p>
-                  </AnimatePresence>
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="cmp-row" aria-hidden="true">
-                      <div className="cmp-row-main">
-                        <div>
-                          <div className="cmp-skel h-4 w-40" />
-                          <div className="cmp-skel mt-2 h-3 w-24" />
-                        </div>
-                        <div className="cmp-metrics">
-                          {[0, 1, 2, 3].map((j) => (
-                            <div key={j} className="cmp-skel h-5 w-20" />
-                          ))}
-                        </div>
-                      </div>
-                      <div className="cmp-skel mt-5 h-1.5 w-full" />
-                    </div>
-                  ))}
-                </motion.div>
-              )}
-
-              {submitted && results.length > 0 && (
-                <motion.div
-                  key={`results-${runId}`}
-                  variants={listVariants}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  <motion.div
-                    variants={rowVariants}
-                    className="cmp-legend mb-4"
+        <AnimatePresence>
+          {showResults && (
+            <motion.section
+              key="results"
+              id="comparativa-results"
+              className="mt-14 scroll-mt-6"
+              aria-live="polite"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{
+                opacity: 0,
+                y: 16,
+                transition: { duration: 0.28, ease: [0.7, 0, 0.84, 0] },
+              }}
+            >
+              <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="max-w-2xl">
+                  <h2 className="cmp-title-lg">Ofertas compatibles</h2>
+                  <p className="cmp-muted mt-2 text-sm">
+                    Los importes se calculan con la estructura de periodos y
+                    reglas del nuevo modelo Excel.
+                  </p>
+                </div>
+                {submitted && results.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleSnapshot}
+                    disabled={creatingSnapshot}
+                    aria-busy={creatingSnapshot}
+                    className="cmp-btn cmp-btn--secondary"
                   >
-                    <span>
-                      <span className="cmp-legend-mark" aria-hidden="true" />
-                      Factura actual{" "}
-                      <strong className="cmp-num text-(--color-ink)">
-                        {money(currentBill)}
-                      </strong>
-                    </span>
-                  </motion.div>
+                    {creatingSnapshot
+                      ? "Creando imagen..."
+                      : "Compartir comparativa"}
+                  </button>
+                )}
+              </div>
 
-                  <div className="cmp-results-head" aria-hidden="true">
-                    <span>Oferta</span>
-                    <span>Total</span>
-                    <span>Ahorro</span>
-                    <span>Ahorro anual</span>
-                    <span>Energía</span>
-                  </div>
+              {snapshotError && (
+                <p className="cmp-notice cmp-notice--error mb-4" role="alert">
+                  {snapshotError}
+                </p>
+              )}
 
-                  {results.map((result, index) => {
-                    const selected = selectedSnapshotOffers.includes(
-                      result.offerName,
-                    );
-                    const delay = 0.1 + index * 0.05;
-                    const good = result.saving > 0;
-                    return (
-                      <motion.article
-                        key={result.offerId}
-                        variants={rowVariants}
-                        className="cmp-row"
-                        data-selected={selected}
+              <AnimatePresence mode="wait">
+                {calculating && (
+                  <motion.div
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                  >
+                    <AnimatePresence mode="wait">
+                      <motion.p
+                        key={calcMessage}
+                        className="cmp-muted mb-4 text-sm"
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -4 }}
+                        transition={{ duration: 0.15 }}
                       >
+                        {calcMessage}
+                      </motion.p>
+                    </AnimatePresence>
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="cmp-row" aria-hidden="true">
                         <div className="cmp-row-main">
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h3>{getDisplayOfferName(result.offerName)}</h3>
-                              {result.offerId === bestOfferId && (
-                                <span className="cmp-tag">Mayor ahorro</span>
+                          <div>
+                            <div className="cmp-skel h-4 w-40" />
+                            <div className="cmp-skel mt-2 h-3 w-24" />
+                          </div>
+                          <div className="cmp-metrics">
+                            {[0, 1, 2, 3].map((j) => (
+                              <div key={j} className="cmp-skel h-5 w-20" />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="cmp-skel mt-5 h-1.5 w-full" />
+                      </div>
+                    ))}
+                  </motion.div>
+                )}
+
+                {submitted && results.length > 0 && (
+                  <motion.div
+                    key={`results-${runId}`}
+                    variants={listVariants}
+                    initial="hidden"
+                    animate="visible"
+                  >
+                    <motion.div
+                      variants={rowVariants}
+                      className="cmp-legend mb-4"
+                    >
+                      <span>
+                        <span className="cmp-legend-mark" aria-hidden="true" />
+                        Factura actual{" "}
+                        <strong className="cmp-num text-(--color-ink)">
+                          {money(currentBill)}
+                        </strong>
+                      </span>
+                    </motion.div>
+
+                    <div className="cmp-results-head" aria-hidden="true">
+                      <span>Oferta</span>
+                      <span>Total</span>
+                      <span>Ahorro</span>
+                      <span>Ahorro anual</span>
+                      <span>Energía</span>
+                    </div>
+
+                    {results.map((result, index) => {
+                      const selected = selectedSnapshotOffers.includes(
+                        result.offerName,
+                      );
+                      const delay = 0.1 + index * 0.05;
+                      const good = result.saving > 0;
+                      return (
+                        <motion.article
+                          key={result.offerId}
+                          variants={rowVariants}
+                          className="cmp-row"
+                          data-selected={selected}
+                        >
+                          <div className="cmp-row-main">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3>{getDisplayOfferName(result.offerName)}</h3>
+                                {result.offerId === bestOfferId && (
+                                  <span className="cmp-tag">Mayor ahorro</span>
+                                )}
+                              </div>
+                              <p className="cmp-muted mt-1 flex flex-wrap gap-x-3 text-xs">
+                                <span>{result.tariff}</span>
+                                <span>{result.duration}</span>
+                              </p>
+                              {result.discountText && (
+                                <p className="mt-2 text-xs leading-5 text-(--color-ink-2)">
+                                  {result.discountText}
+                                </p>
                               )}
                             </div>
-                            <p className="cmp-muted mt-1 flex flex-wrap gap-x-3 text-xs">
-                              <span>{result.tariff}</span>
-                              <span>{result.duration}</span>
-                            </p>
-                            {result.discountText && (
-                              <p className="mt-2 text-xs leading-5 text-(--color-ink-2)">
-                                {result.discountText}
-                              </p>
-                            )}
-                          </div>
 
-                          <div className="cmp-metrics">
-                            <div>
-                              <span className="cmp-cell-label">Total</span>
-                              <p className="cmp-metric">
-                                <CountUp value={result.total} delay={delay} />
-                              </p>
-                            </div>
-                            <div>
-                              <span className="cmp-cell-label">Ahorro</span>
-                              <p
-                                className={`cmp-metric ${good ? "cmp-metric--good" : "cmp-metric--none"}`}
-                              >
-                                {good ? (
+                            <div className="cmp-metrics">
+                              <div>
+                                <span className="cmp-cell-label">Total</span>
+                                <p className="cmp-metric">
+                                  <CountUp value={result.total} delay={delay} />
+                                </p>
+                              </div>
+                              <div>
+                                <span className="cmp-cell-label">Ahorro</span>
+                                <p
+                                  className={`cmp-metric ${good ? "cmp-metric--good" : "cmp-metric--none"}`}
+                                >
+                                  {good ? (
+                                    <CountUp
+                                      value={result.saving}
+                                      delay={delay}
+                                    />
+                                  ) : (
+                                    "—"
+                                  )}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="cmp-cell-label">
+                                  Ahorro anual
+                                </span>
+                                <p
+                                  className={`cmp-metric ${result.annualSaving > 0 ? "cmp-metric--good" : "cmp-metric--none"}`}
+                                >
+                                  {result.annualSaving > 0 ? (
+                                    <CountUp
+                                      value={result.annualSaving}
+                                      delay={delay}
+                                    />
+                                  ) : (
+                                    "—"
+                                  )}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="cmp-cell-label">Energía</span>
+                                <p className="cmp-metric">
                                   <CountUp
-                                    value={result.saving}
+                                    value={result.energy}
                                     delay={delay}
                                   />
-                                ) : (
-                                  "—"
-                                )}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="cmp-cell-label">
-                                Ahorro anual
-                              </span>
-                              <p
-                                className={`cmp-metric ${result.annualSaving > 0 ? "cmp-metric--good" : "cmp-metric--none"}`}
-                              >
-                                {result.annualSaving > 0 ? (
-                                  <CountUp
-                                    value={result.annualSaving}
-                                    delay={delay}
-                                  />
-                                ) : (
-                                  "—"
-                                )}
-                              </p>
-                            </div>
-                            <div>
-                              <span className="cmp-cell-label">Energía</span>
-                              <p className="cmp-metric">
-                                <CountUp value={result.energy} delay={delay} />
-                              </p>
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div
-                          className="cmp-billbar"
-                          role="img"
-                          aria-label={`${money(result.total)} frente a ${money(currentBill)} de la factura actual`}
-                        >
-                          <motion.div
-                            className="cmp-billbar-fill"
-                            data-good={good}
-                            initial={{
-                              scaleX: reduced ? result.total / barMax : 0,
-                            }}
-                            animate={{ scaleX: result.total / barMax }}
-                            transition={{
-                              duration: 0.7,
-                              delay,
-                              ease: EASE_OUT,
-                            }}
-                          />
-                          <span
-                            className="cmp-billbar-mark"
-                            style={{ left: `${(currentBill / barMax) * 100}%` }}
-                          />
-                        </div>
-
-                        <div className="cmp-row-actions">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedOffer(result)}
-                            className="cmp-btn cmp-btn--secondary"
+                          <div
+                            className="cmp-billbar"
+                            role="img"
+                            aria-label={`${money(result.total)} frente a ${money(currentBill)} de la factura actual`}
                           >
-                            Ver detalle
-                          </button>
-                          <button
-                            type="button"
-                            aria-pressed={selected}
-                            onClick={() =>
-                              setSelectedSnapshotOffers((current) =>
-                                current.includes(result.offerName)
-                                  ? current.filter(
-                                      (name) => name !== result.offerName,
-                                    )
-                                  : [...current, result.offerName],
-                              )
-                            }
-                            className="cmp-btn cmp-btn--secondary"
-                          >
-                            {selected
-                              ? "Quitar de compartir"
-                              : "Añadir a compartir"}
-                          </button>
-                        </div>
-                      </motion.article>
-                    );
-                  })}
-                </motion.div>
-              )}
+                            <motion.div
+                              className="cmp-billbar-fill"
+                              data-good={good}
+                              initial={{
+                                scaleX: reduced ? result.total / barMax : 0,
+                              }}
+                              animate={{ scaleX: result.total / barMax }}
+                              transition={{
+                                duration: 0.7,
+                                delay,
+                                ease: EASE_OUT,
+                              }}
+                            />
+                            <span
+                              className="cmp-billbar-mark"
+                              style={{
+                                left: `${(currentBill / barMax) * 100}%`,
+                              }}
+                            />
+                          </div>
 
-              {submitted && results.length === 0 && (
-                <motion.p
-                  key="empty"
-                  className="cmp-notice cmp-notice--warn"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.22, ease: EASE_OUT }}
-                >
-                  No hay ofertas compatibles con la tarifa detectada. Revisa los
-                  periodos de potencia y consumo y comprueba que los datos de la
-                  factura estén completos.
-                </motion.p>
-              )}
-            </AnimatePresence>
-          </section>
-        )}
+                          <div className="cmp-row-actions">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedOffer(result)}
+                              className="cmp-btn cmp-btn--secondary"
+                            >
+                              Ver detalle
+                            </button>
+                            <button
+                              type="button"
+                              aria-pressed={selected}
+                              onClick={() =>
+                                setSelectedSnapshotOffers((current) =>
+                                  current.includes(result.offerName)
+                                    ? current.filter(
+                                        (name) => name !== result.offerName,
+                                      )
+                                    : [...current, result.offerName],
+                                )
+                              }
+                              className="cmp-btn cmp-btn--secondary"
+                            >
+                              {selected
+                                ? "Quitar de compartir"
+                                : "Añadir a compartir"}
+                            </button>
+                          </div>
+                        </motion.article>
+                      );
+                    })}
+                  </motion.div>
+                )}
+
+                {submitted && results.length === 0 && (
+                  <motion.p
+                    key="empty"
+                    className="cmp-notice cmp-notice--warn"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, ease: EASE_OUT }}
+                  >
+                    No hay ofertas compatibles con la tarifa detectada. Revisa
+                    los periodos de potencia y consumo y comprueba que los datos
+                    de la factura estén completos.
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </motion.section>
+          )}
+        </AnimatePresence>
       </main>
 
       <AnimatePresence>
