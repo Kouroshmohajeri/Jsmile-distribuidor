@@ -1,15 +1,35 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import "./comparativa.css";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import {
+  AnimatePresence,
+  animate,
+  motion,
+  useReducedMotion,
+  type Variants,
+} from "motion/react";
 import { IBERDROLA_OFFERS, type Tariff } from "@/lib/offers";
 import {
   calculateAllOffers,
   type ComparadorInput,
   type OfferResult,
 } from "@/lib/calculator";
-import InvoiceImporter from "../components/InvoiceImporter";
+
+const EASE_OUT = [0.16, 1, 0.3, 1] as const;
+const CALC_DURATION_MS = 1000;
+const CALC_MESSAGES = [
+  "Aplicando precios por periodo...",
+  "Calculando potencia e impuestos...",
+  "Comparando ofertas compatibles...",
+];
+
+const money = (value: number) =>
+  new Intl.NumberFormat("es-ES", {
+    style: "currency",
+    currency: "EUR",
+  }).format(value);
 
 function Field({
   label,
@@ -18,7 +38,6 @@ function Field({
   suffix,
   min = 0,
   step = "0.01",
-  dataAiKey,
 }: {
   label: string;
   value: string;
@@ -26,36 +45,27 @@ function Field({
   suffix?: string;
   min?: number;
   step?: string;
-  dataAiKey?: string;
 }) {
   return (
-    <label
-      data-ai-key={dataAiKey}
-      className="block transition-all duration-300"
-    >
-      <span className="mb-2 block text-sm font-semibold text-[#12141c]">
-        {label}
-      </span>
-      <div className="relative">
+    <label className="cmp-field">
+      <span className="cmp-field-label">{label}</span>
+      <span className="cmp-input-wrap">
         <input
           type="number"
+          inputMode="decimal"
           min={min}
           step={step}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full rounded-xl border border-[#dfe2e8] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#1b2559] focus:ring-2 focus:ring-[#1b2559]/10"
+          className="cmp-input"
         />
-        {suffix && (
-          <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#858995]">
-            {suffix}
-          </span>
-        )}
-      </div>
+        {suffix && <span className="cmp-input-suffix">{suffix}</span>}
+      </span>
     </label>
   );
 }
 
-function Section({
+function Group({
   title,
   description,
   children,
@@ -65,15 +75,74 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-[#e4e6ec] bg-white p-5 shadow-[0_12px_35px_rgba(18,20,28,.055)] sm:p-6">
-      <h2 className="text-lg font-extrabold text-[#12141c]">{title}</h2>
-      {description && (
-        <p className="mt-1 text-sm text-[#777b87]">{description}</p>
-      )}
-      <div className="mt-5">{children}</div>
+    <section className="cmp-group">
+      <div>
+        <h2>{title}</h2>
+        {description && <p className="cmp-group-desc">{description}</p>}
+      </div>
+      <div className="min-w-0">{children}</div>
     </section>
   );
 }
+
+/** Counts a figure up from 0, writing to the DOM directly (no re-renders). */
+function CountUp({ value, delay = 0 }: { value: number; delay?: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const reduced = useReducedMotion();
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    if (reduced) {
+      element.textContent = money(value);
+      return;
+    }
+    element.textContent = money(0);
+    const controls = animate(0, value, {
+      duration: 0.7,
+      delay,
+      ease: EASE_OUT,
+      onUpdate: (latest: number) => {
+        element.textContent = money(latest);
+      },
+    });
+    return () => controls.stop();
+  }, [value, delay, reduced]);
+
+  return <span ref={ref}>{money(value)}</span>;
+}
+
+function BackIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+const listVariants: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.05 } },
+};
+
+const rowVariants: Variants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.42, ease: EASE_OUT },
+  },
+};
 
 function getOfferPriority(name: string) {
   const value = name.toLowerCase();
@@ -105,28 +174,7 @@ function getDisplayOfferName(name: string) {
   return name;
 }
 
-function OfferIcon({ offerName }: { offerName: string }) {
-  const name = offerName.toLowerCase();
-  const path = name.includes("tranquilidad")
-    ? "M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4Z"
-    : name.includes("ahorro")
-      ? "M12 3v18M5 8l7-5 7 5M5 16l7 5 7-5"
-      : "M13 2L4 14h7l-1 8 9-12h-7l1-8Z";
-  return (
-    <svg
-      className="h-5 w-5"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={1.8}
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d={path} />
-    </svg>
-  );
-}
-
 const PERIODS = ["P1", "P2", "P3", "P4", "P5", "P6"] as const;
-type PeriodKey = (typeof PERIODS)[number];
 
 type FormState = Record<string, string>;
 
@@ -178,132 +226,79 @@ function detectTariff(form: FormState): Tariff | null {
   return hasHigherPeriods ? "6.1TD" : "3.0TD";
 }
 
-function tariffLabel(tariff: Tariff | null) {
-  if (!tariff) return "";
-  if (tariff === "2.0TD_2") return "2.0 TD · hasta 10 kW";
-  if (tariff === "2.0TD_3") return "2.0 TD · más de 10 kW y hasta 15 kW";
-  if (tariff === "3.0TD") return "3.0 TD · más de 15 kW";
-  return "6.1 TD";
+function tariffParts(tariff: Tariff | null): [string, string | null] | null {
+  if (!tariff) return null;
+  if (tariff === "2.0TD_2") return ["2.0 TD", "hasta 10 kW"];
+  if (tariff === "2.0TD_3") return ["2.0 TD", "más de 10 kW y hasta 15 kW"];
+  if (tariff === "3.0TD") return ["3.0 TD", "más de 15 kW"];
+  return ["6.1 TD", null];
 }
 
-function requiredPeriods(tariff: Tariff | null) {
-  if (tariff === "6.1TD") return 6;
-  if (tariff === "3.0TD") return 6;
-  return 2;
+/** Plain label, used by the share image. */
+function tariffLabel(tariff: Tariff | null) {
+  const parts = tariffParts(tariff);
+  if (!parts) return "";
+  return parts[1] ? `${parts[0]} · ${parts[1]}` : parts[0];
+}
+
+function TariffChip({ tariff }: { tariff: Tariff | null }) {
+  const parts = tariffParts(tariff);
+  return (
+    <AnimatePresence mode="wait" initial={false}>
+      {parts && (
+        <motion.p
+          key={tariff}
+          className="cmp-chip"
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.18, ease: EASE_OUT }}
+        >
+          <span>Tarifa detectada</span>
+          <strong>{parts[0]}</strong>
+          {parts[1] && <span>{parts[1]}</span>}
+        </motion.p>
+      )}
+    </AnimatePresence>
+  );
 }
 
 export default function ComparativaPage() {
   const router = useRouter();
+  const reduced = useReducedMotion();
   const [form, setForm] = useState<FormState>(initial);
   const [submitted, setSubmitted] = useState(false);
+  const [calculating, setCalculating] = useState(false);
+  const [calcMessage, setCalcMessage] = useState(CALC_MESSAGES[0]);
+  const [runId, setRunId] = useState(0);
   const [selectedOffer, setSelectedOffer] = useState<OfferResult | null>(null);
   const [selectedSnapshotOffers, setSelectedSnapshotOffers] = useState<
     string[]
   >([]);
   const [creatingSnapshot, setCreatingSnapshot] = useState(false);
   const [snapshotError, setSnapshotError] = useState("");
-  const [aiFilling, setAiFilling] = useState(false);
-  const [aiFilledKeys, setAiFilledKeys] = useState<string[]>([]);
-  const [aiMessage, setAiMessage] = useState("Analizando tu factura...");
-  const aiTimers = useRef<number[]>([]);
+  const calcTimers = useRef<number[]>([]);
 
-  const clearAiTimers = () => {
-    aiTimers.current.forEach((timer) => window.clearTimeout(timer));
-    aiTimers.current = [];
+  const clearCalcTimers = () => {
+    calcTimers.current.forEach((timer) => window.clearTimeout(timer));
+    calcTimers.current = [];
   };
 
-  useEffect(() => () => clearAiTimers(), []);
+  useEffect(() => () => clearCalcTimers(), []);
+
+  useEffect(() => {
+    if (!selectedOffer) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSelectedOffer(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectedOffer]);
 
   const update = (key: string, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
     setSubmitted(false);
   };
-
-  const runAiFillAnimation = (fields: Record<string, unknown>) => {
-    clearAiTimers();
-
-    // Accept both the old invoice-parser names and the new P1..P6 names.
-    const normalized: Record<string, unknown> = { ...fields };
-    PERIODS.forEach((period) => {
-      const powerKey = `potencia${period}`;
-      const consumptionKey = `consumo${period}`;
-      const profileKey = `perfil${period}`;
-      if (normalized[powerKey] == null && normalized[`power${period}`] != null)
-        normalized[powerKey] = normalized[`power${period}`];
-      if (
-        normalized[consumptionKey] == null &&
-        normalized[`consumption${period}`] != null
-      )
-        normalized[consumptionKey] = normalized[`consumption${period}`];
-      if (
-        normalized[profileKey] == null &&
-        normalized[`profile${period}`] != null
-      )
-        normalized[profileKey] = normalized[`profile${period}`];
-    });
-
-    const order = [
-      ...PERIODS.map((period) => `potencia${period}`),
-      ...PERIODS.map((period) => `consumo${period}`),
-      ...PERIODS.map((period) => `perfil${period}`),
-      "iva",
-      "ie",
-      "diasFactura",
-      "totalFacturaActual",
-      "reactivaBonoSocial",
-      "otrosConceptos",
-      "alquilerEquipo",
-      "excesosPotencia",
-      "otrosDescuentos",
-      "otrosCashbacks",
-    ];
-
-    const keys = order.filter(
-      (key) =>
-        normalized[key] !== undefined &&
-        normalized[key] !== null &&
-        normalized[key] !== "",
-    );
-    setAiFilling(true);
-    setAiFilledKeys([]);
-    setAiMessage("Analizando tu factura...");
-
-    keys.forEach((key, index) => {
-      const timer = window.setTimeout(
-        () => {
-          setForm((current) => ({
-            ...current,
-            [key]: String(normalized[key]),
-          }));
-          setAiFilledKeys((current) => [...current, key]);
-          if (index < Math.ceil(keys.length * 0.45))
-            setAiMessage("Identificando datos de la factura...");
-          else if (index < Math.ceil(keys.length * 0.82))
-            setAiMessage("Comprobando consumos e importes...");
-          else setAiMessage("Verificando los últimos campos...");
-          if (index === keys.length - 1) {
-            const finishTimer = window.setTimeout(() => {
-              setAiMessage("Factura procesada correctamente");
-              setAiFilling(false);
-            }, 650);
-            aiTimers.current.push(finishTimer);
-          }
-        },
-        250 + index * 70,
-      );
-      aiTimers.current.push(timer);
-    });
-  };
-
-  useEffect(() => {
-    document
-      .querySelectorAll<HTMLElement>("[data-ai-key]")
-      .forEach((element) => {
-        const key = element.dataset.aiKey;
-        element.dataset.aiFilled =
-          key && aiFilledKeys.includes(key) ? "true" : "false";
-      });
-  }, [aiFilledKeys]);
 
   const tariff = useMemo(() => detectTariff(form), [form]);
 
@@ -353,8 +348,6 @@ export default function ComparativaPage() {
     };
   }, [form, tariff]);
 
-  const validProfile = true;
-
   const results = useMemo(() => {
     if (!submitted || !parsed) return [];
     const compatibleOffers = IBERDROLA_OFFERS.filter(
@@ -370,18 +363,60 @@ export default function ComparativaPage() {
       });
   }, [submitted, parsed]);
 
+  const currentBill = parsed?.totalFacturaActual ?? 0;
+  const barMax = Math.max(currentBill, ...results.map((r) => r.total), 1);
+  const bestOfferId = useMemo(() => {
+    const best = results.reduce<OfferResult | null>(
+      (top, r) => (r.saving > 0 && (!top || r.saving > top.saving) ? r : top),
+      null,
+    );
+    return best?.offerId ?? null;
+  }, [results]);
+
   const canCalculate =
     parsed !== null &&
-    validProfile &&
     Number(form.iva) >= 0 &&
     Number(form.ie) >= 0 &&
     Number(form.diasFactura) > 0;
 
-  const money = (value: number) =>
-    new Intl.NumberFormat("es-ES", {
-      style: "currency",
-      currency: "EUR",
-    }).format(value);
+  const scrollToResults = () =>
+    window.setTimeout(
+      () =>
+        document
+          .getElementById("comparativa-results")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      60,
+    );
+
+  function handleCalculate() {
+    clearCalcTimers();
+    setSelectedOffer(null);
+    setSelectedSnapshotOffers([]);
+    setSubmitted(false);
+
+    const reveal = () => {
+      setCalculating(false);
+      setSubmitted(true);
+      setRunId((id) => id + 1);
+    };
+
+    if (reduced) {
+      reveal();
+      scrollToResults();
+      return;
+    }
+
+    setCalculating(true);
+    setCalcMessage(CALC_MESSAGES[0]);
+    scrollToResults();
+    const step = CALC_DURATION_MS / CALC_MESSAGES.length;
+    CALC_MESSAGES.slice(1).forEach((message, index) => {
+      calcTimers.current.push(
+        window.setTimeout(() => setCalcMessage(message), step * (index + 1)),
+      );
+    });
+    calcTimers.current.push(window.setTimeout(reveal, CALC_DURATION_MS));
+  }
 
   async function handleSnapshot() {
     if (!results.length || !parsed) return;
@@ -498,87 +533,47 @@ export default function ComparativaPage() {
     }
   }
 
-  return (
-    <>
-      <main
-        className={`relative min-h-screen overflow-hidden bg-[#f5f6f9] px-4 py-8 text-[#12141c] sm:px-6 ${aiFilling ? "ai-filling-page" : ""}`}
-      >
-        {aiFilling && (
-          <>
-            <div className="fixed inset-0 z-40 bg-white/60 backdrop-blur-md" />
-            <div className="pointer-events-none fixed inset-x-0 top-0 z-50 h-1 overflow-hidden bg-[#e8eaf0]">
-              <div className="ai-progress-bar h-full rounded-full bg-[#11183c]" />
-            </div>
-            <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-6">
-              <div className="w-full max-w-sm rounded-3xl border border-[#e4e6ec] bg-white px-6 py-7 text-center shadow-[0_30px_100px_rgba(18,20,28,.16)]">
-                <div className="mx-auto h-44 w-44">
-                  <DotLottieReact
-                    src="https://lottie.host/6690e4d4-cfa1-4cc4-a69f-26f59a67a894/Aaae80lNoL.lottie"
-                    loop
-                    autoplay
-                  />
-                </div>
-                <p className="text-lg font-extrabold text-[#12141c]">
-                  Estamos revisando tu factura
-                </p>
-                <p className="mt-2 text-sm leading-5 text-[#777b87]">
-                  {aiMessage}
-                </p>
-                <div className="mx-auto mt-5 flex w-fit items-center gap-2 rounded-full bg-[#f5f6f9] px-3 py-1.5 text-xs font-bold text-[#5b5f6b]">
-                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#11183c]" />
-                  {aiFilledKeys.length
-                    ? `${aiFilledKeys.length} datos identificados`
-                    : "Analizando factura..."}
-                </div>
-              </div>
-            </div>
-          </>
-        )}
+  const showResults = calculating || submitted;
 
-        <div className="mx-auto max-w-6xl">
+  return (
+    <div className="cmp">
+      <header className="cmp-topbar">
+        <div className="cmp-container cmp-topbar-inner">
           <button
             type="button"
             onClick={() =>
               window.history.length > 1 ? router.back() : router.push("/")
             }
-            className="mb-5 inline-flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-[#5b5f6b] transition hover:bg-white hover:text-[#12141c]"
+            className="cmp-btn cmp-btn--quiet"
           >
-            ← Volver
+            <BackIcon />
+            <span>Volver</span>
           </button>
+          <p className="cmp-wordmark">
+            jsmile<span>.es</span>
+          </p>
+        </div>
+      </header>
 
-          <div className="mb-8">
-            <p className="text-[10px] font-extrabold uppercase tracking-[2.5px] text-[#8a7b4f]">
-              jsmile.es
-            </p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-              Comparativa Iberdrola
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#777b87]">
-              Introduce los datos de la factura actual para calcular las ofertas
-              Iberdrola compatibles con la potencia contratada.
-            </p>
-          </div>
+      <main className="cmp-container pb-24 pt-10">
+        <div className="mb-8 max-w-2xl">
+          <h1>Comparativa Iberdrola</h1>
+          <p className="cmp-muted mt-3">
+            Introduce los datos de la factura actual para calcular las ofertas
+            Iberdrola compatibles con la potencia contratada.
+          </p>
+        </div>
 
-          <InvoiceImporter
-            onExtracted={(fields) => {
-              setSubmitted(false);
-              setSelectedOffer(null);
-              runAiFillAnimation(fields as unknown as Record<string, unknown>);
-            }}
-          />
-
-          <div
-            className={`mt-5 grid gap-5 lg:grid-cols-2 transition-all duration-700 ${aiFilling ? "ai-form-active" : ""}`}
-          >
-            <Section
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="cmp-sheet">
+            <Group
               title="Potencia contratada"
               description="Indica la potencia contratada en cada periodo."
             >
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="cmp-fields">
                 {(["P1", "P2"] as const).map((period) => (
                   <Field
                     key={period}
-                    dataAiKey={`potencia${period}`}
                     label={`Potencia ${period}`}
                     value={form[`potencia${period}`]}
                     onChange={(value) => update(`potencia${period}`, value)}
@@ -586,47 +581,19 @@ export default function ComparativaPage() {
                   />
                 ))}
               </div>
-              {tariff && (
-                <div className="mt-4 rounded-xl bg-[#f4f0e5] px-4 py-3 text-sm text-[#5b5f6b]">
-                  <span className="font-bold text-[#12141c]">
-                    Tarifa detectada:
-                  </span>{" "}
-                  {tariffLabel(tariff)}
-                </div>
-              )}
-            </Section>
-
-            <Section
-              title="Impuestos"
-              description="Introduce los porcentajes que aparecen en la factura."
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field
-                  dataAiKey="iva"
-                  label="IVA / IGIC"
-                  value={form.iva}
-                  onChange={(value) => update("iva", value)}
-                  suffix="%"
-                />
-                <Field
-                  dataAiKey="ie"
-                  label="Impuesto eléctrico (IE)"
-                  value={form.ie}
-                  onChange={(value) => update("ie", value)}
-                  suffix="%"
-                />
+              <div className="mt-4 min-h-9">
+                <TariffChip tariff={tariff} />
               </div>
-            </Section>
+            </Group>
 
-            <Section
+            <Group
               title="Consumo"
               description="Introduce el consumo de la factura en cada periodo."
             >
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="cmp-fields">
                 {(["P1", "P2", "P3"] as const).map((period) => (
                   <Field
                     key={period}
-                    dataAiKey={`consumo${period}`}
                     label={`Consumo ${period}`}
                     value={form[`consumo${period}`]}
                     onChange={(value) => update(`consumo${period}`, value)}
@@ -634,31 +601,14 @@ export default function ComparativaPage() {
                   />
                 ))}
               </div>
-            </Section>
+            </Group>
 
-            <Section
-              title="Perfil de consumo"
-              description="Perfil fijo aplicado a las ofertas de dos precios."
-            >
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-xl bg-[#f7f8fa] p-4">
-                  <p className="text-sm text-[#777b87]">P1</p>
-                  <p className="mt-1 text-xl font-black">20%</p>
-                </div>
-                <div className="rounded-xl bg-[#f7f8fa] p-4">
-                  <p className="text-sm text-[#777b87]">P2</p>
-                  <p className="mt-1 text-xl font-black">80%</p>
-                </div>
-              </div>
-            </Section>
-
-            <Section
+            <Group
               title="Datos de la factura"
               description="Introduce los importes del periodo facturado."
             >
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="cmp-fields">
                 <Field
-                  dataAiKey="diasFactura"
                   label="Días facturados"
                   value={form.diasFactura}
                   onChange={(value) => update("diasFactura", value)}
@@ -666,274 +616,481 @@ export default function ComparativaPage() {
                   step="1"
                 />
                 <Field
-                  dataAiKey="totalFacturaActual"
                   label="Total factura actual"
                   value={form.totalFacturaActual}
                   onChange={(value) => update("totalFacturaActual", value)}
                   suffix="€"
                 />
                 <Field
-                  dataAiKey="reactivaBonoSocial"
                   label="Reactiva / Bono Social"
                   value={form.reactivaBonoSocial}
                   onChange={(value) => update("reactivaBonoSocial", value)}
                   suffix="€"
                 />
                 <Field
-                  dataAiKey="otrosConceptos"
                   label="Otros conceptos"
                   value={form.otrosConceptos}
                   onChange={(value) => update("otrosConceptos", value)}
                   suffix="€"
                 />
                 <Field
-                  dataAiKey="alquilerEquipo"
                   label="Alquiler equipo"
                   value={form.alquilerEquipo}
                   onChange={(value) => update("alquilerEquipo", value)}
                   suffix="€"
                 />
               </div>
-            </Section>
-          </div>
+            </Group>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <button
-              type="button"
-              disabled={!canCalculate}
-              onClick={() => {
-                setSubmitted(true);
-                setSelectedOffer(null);
-                setSelectedSnapshotOffers([]);
-                window.setTimeout(
-                  () =>
-                    document
-                      .getElementById("comparativa-results")
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" }),
-                  50,
-                );
-              }}
-              className="rounded-2xl bg-[#11183c] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#1b2559] disabled:cursor-not-allowed disabled:opacity-40"
+            <Group
+              title="Impuestos"
+              description="Introduce los porcentajes que aparecen en la factura."
             >
-              Calcular comparativa
-            </button>
-            {tariff && (
-              <span className="text-sm text-[#777b87]">
-                {tariffLabel(tariff)} · {results.length} ofertas compatibles
-              </span>
-            )}
+              <div className="cmp-fields">
+                <Field
+                  label="IVA / IGIC"
+                  value={form.iva}
+                  onChange={(value) => update("iva", value)}
+                  suffix="%"
+                />
+                <Field
+                  label="Impuesto eléctrico (IE)"
+                  value={form.ie}
+                  onChange={(value) => update("ie", value)}
+                  suffix="%"
+                />
+              </div>
+            </Group>
+
+            <Group
+              title="Perfil de consumo"
+              description="Perfil fijo aplicado a las ofertas de dos precios."
+            >
+              <div className="cmp-split" role="img" aria-label="P1 20%, P2 80%">
+                <div style={{ flexBasis: "20%" }}>
+                  <span>P1</span>
+                  <span>20%</span>
+                </div>
+                <div style={{ flexBasis: "80%" }}>
+                  <span>P2</span>
+                  <span>80%</span>
+                </div>
+              </div>
+            </Group>
           </div>
 
-          {submitted && results.length > 0 && (
-            <section id="comparativa-results" className="mt-10 scroll-mt-6">
-              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <aside className="cmp-sheet cmp-aside">
+            <h2>Resumen</h2>
+            <dl className="cmp-summary">
+              <div>
+                <dt>Tarifa</dt>
+                <dd>{tariffParts(tariff)?.[0] ?? "Sin detectar"}</dd>
+              </div>
+              <div>
+                <dt>Días facturados</dt>
+                <dd>{form.diasFactura || "Sin indicar"}</dd>
+              </div>
+              <div>
+                <dt>Total factura actual</dt>
+                <dd>
+                  {form.totalFacturaActual
+                    ? money(Number(form.totalFacturaActual))
+                    : "Sin indicar"}
+                </dd>
+              </div>
+              {submitted && (
                 <div>
-                  <p className="text-[10px] font-extrabold uppercase tracking-[2.5px] text-[#8a7b4f]">
-                    Resultado
-                  </p>
-                  <h2 className="mt-2 text-2xl font-black">
-                    Ofertas compatibles
-                  </h2>
-                  <p className="mt-1 text-sm text-[#777b87]">
-                    Los importes se calculan con la estructura de periodos y
-                    reglas del nuevo modelo Excel.
-                  </p>
+                  <dt>Ofertas compatibles</dt>
+                  <dd>{results.length}</dd>
                 </div>
+              )}
+            </dl>
+
+            <motion.button
+              type="button"
+              disabled={!canCalculate || calculating}
+              aria-busy={calculating}
+              onClick={handleCalculate}
+              whileTap={canCalculate && !calculating ? { scale: 0.98 } : {}}
+              transition={{ duration: 0.12 }}
+              className="cmp-btn cmp-btn--primary relative w-full overflow-hidden"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={calculating ? "busy" : "idle"}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {calculating ? "Calculando..." : "Calcular comparativa"}
+                </motion.span>
+              </AnimatePresence>
+              {calculating && (
+                <motion.span
+                  className="cmp-btn-progress"
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{
+                    duration: CALC_DURATION_MS / 1000,
+                    ease: "linear",
+                  }}
+                />
+              )}
+            </motion.button>
+            {!canCalculate && (
+              <p className="cmp-muted mt-3 text-sm">
+                Completa potencia, consumo, días facturados y total para
+                calcular.
+              </p>
+            )}
+          </aside>
+        </div>
+
+        {showResults && (
+          <section
+            id="comparativa-results"
+            className="mt-14 scroll-mt-6"
+            aria-live="polite"
+          >
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div className="max-w-2xl">
+                <h2 className="cmp-title-lg">Ofertas compatibles</h2>
+                <p className="cmp-muted mt-2 text-sm">
+                  Los importes se calculan con la estructura de periodos y
+                  reglas del nuevo modelo Excel.
+                </p>
+              </div>
+              {submitted && results.length > 0 && (
                 <button
                   type="button"
                   onClick={handleSnapshot}
                   disabled={creatingSnapshot}
-                  className="rounded-xl border border-[#dfe2e8] bg-white px-4 py-2.5 text-sm font-bold text-[#12141c] hover:bg-[#f7f8fa] disabled:opacity-50"
+                  aria-busy={creatingSnapshot}
+                  className="cmp-btn cmp-btn--secondary"
                 >
                   {creatingSnapshot
                     ? "Creando imagen..."
                     : "Compartir comparativa"}
                 </button>
-              </div>
+              )}
+            </div>
 
-              {snapshotError && (
-                <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {snapshotError}
-                </p>
+            {snapshotError && (
+              <p className="cmp-notice cmp-notice--error mb-4" role="alert">
+                {snapshotError}
+              </p>
+            )}
+
+            <AnimatePresence mode="wait">
+              {calculating && (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                >
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={calcMessage}
+                      className="cmp-muted mb-4 text-sm"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      {calcMessage}
+                    </motion.p>
+                  </AnimatePresence>
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="cmp-row" aria-hidden="true">
+                      <div className="cmp-row-main">
+                        <div>
+                          <div className="cmp-skel h-4 w-40" />
+                          <div className="cmp-skel mt-2 h-3 w-24" />
+                        </div>
+                        <div className="cmp-metrics">
+                          {[0, 1, 2, 3].map((j) => (
+                            <div key={j} className="cmp-skel h-5 w-20" />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="cmp-skel mt-5 h-1.5 w-full" />
+                    </div>
+                  ))}
+                </motion.div>
               )}
 
-              <div className="grid gap-4">
-                {results.map((result) => {
-                  const selected = selectedSnapshotOffers.includes(
-                    result.offerName,
-                  );
-                  return (
-                    <article
-                      key={result.offerId}
-                      className={`rounded-3xl border bg-white p-5 shadow-[0_12px_35px_rgba(18,20,28,.055)] transition ${selected ? "border-[#11183c] ring-2 ring-[#11183c]/10" : "border-[#e4e6ec]"}`}
-                    >
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="flex items-start gap-3">
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#f4f0e5] text-[#8a7b4f]">
-                            <OfferIcon offerName={result.offerName} />
-                          </div>
-                          <div>
-                            <h3 className="font-extrabold text-[#12141c]">
-                              {getDisplayOfferName(result.offerName)}
-                            </h3>
-                            <p className="mt-1 text-xs text-[#777b87]">
-                              {result.tariff} · {result.duration}
-                            </p>
-                            <p className="mt-2 text-xs leading-5 text-[#666b78]">
-                              {result.discountText}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-5 sm:grid-cols-4 lg:min-w-[560px]">
-                          <div>
-                            <p className="text-xs text-[#858995]">Total</p>
-                            <p className="mt-1 text-lg font-black">
-                              {money(result.total)}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-[#858995]">Ahorro</p>
-                            <p
-                              className={`mt-1 text-lg font-black ${result.saving > 0 ? "text-[#087f5b]" : "text-[#98a0ad]"}`}
-                            >
-                              {result.saving > 0 ? money(result.saving) : "—"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-[#858995]">
-                              Ahorro anual
-                            </p>
-                            <p
-                              className={`mt-1 text-lg font-black ${result.annualSaving > 0 ? "text-[#087f5b]" : "text-[#98a0ad]"}`}
-                            >
-                              {result.annualSaving > 0
-                                ? money(result.annualSaving)
-                                : "—"}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-[#858995]">Energía</p>
-                            <p className="mt-1 text-lg font-black">
-                              {money(result.energy)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[#eef0f3] pt-4">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedOffer(result)}
-                          className="rounded-xl bg-[#11183c] px-4 py-2 text-xs font-bold text-white"
-                        >
-                          Ver detalle
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setSelectedSnapshotOffers((current) =>
-                              current.includes(result.offerName)
-                                ? current.filter(
-                                    (name) => name !== result.offerName,
-                                  )
-                                : [...current, result.offerName],
-                            )
-                          }
-                          className="rounded-xl border border-[#dfe2e8] px-4 py-2 text-xs font-bold text-[#12141c]"
-                        >
-                          {selected
-                            ? "Quitar de compartir"
-                            : "Añadir a compartir"}
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
-          )}
+              {submitted && results.length > 0 && (
+                <motion.div
+                  key={`results-${runId}`}
+                  variants={listVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  <motion.div
+                    variants={rowVariants}
+                    className="cmp-legend mb-4"
+                  >
+                    <span>
+                      <span className="cmp-legend-mark" aria-hidden="true" />
+                      Factura actual{" "}
+                      <strong className="cmp-num text-(--color-ink)">
+                        {money(currentBill)}
+                      </strong>
+                    </span>
+                  </motion.div>
 
-          {submitted && results.length === 0 && (
-            <div className="mt-10 rounded-3xl border border-amber-200 bg-amber-50 p-6 text-sm leading-6 text-amber-900">
-              No hay ofertas compatibles con la tarifa detectada. Revisa los
-              periodos de potencia y consumo y comprueba que los datos de la
-              factura estén completos.
-            </div>
-          )}
-        </div>
+                  <div className="cmp-results-head" aria-hidden="true">
+                    <span>Oferta</span>
+                    <span>Total</span>
+                    <span>Ahorro</span>
+                    <span>Ahorro anual</span>
+                    <span>Energía</span>
+                  </div>
+
+                  {results.map((result, index) => {
+                    const selected = selectedSnapshotOffers.includes(
+                      result.offerName,
+                    );
+                    const delay = 0.1 + index * 0.05;
+                    const good = result.saving > 0;
+                    return (
+                      <motion.article
+                        key={result.offerId}
+                        variants={rowVariants}
+                        className="cmp-row"
+                        data-selected={selected}
+                      >
+                        <div className="cmp-row-main">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3>{getDisplayOfferName(result.offerName)}</h3>
+                              {result.offerId === bestOfferId && (
+                                <span className="cmp-tag">Mayor ahorro</span>
+                              )}
+                            </div>
+                            <p className="cmp-muted mt-1 flex flex-wrap gap-x-3 text-xs">
+                              <span>{result.tariff}</span>
+                              <span>{result.duration}</span>
+                            </p>
+                            {result.discountText && (
+                              <p className="mt-2 text-xs leading-5 text-(--color-ink-2)">
+                                {result.discountText}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="cmp-metrics">
+                            <div>
+                              <span className="cmp-cell-label">Total</span>
+                              <p className="cmp-metric">
+                                <CountUp value={result.total} delay={delay} />
+                              </p>
+                            </div>
+                            <div>
+                              <span className="cmp-cell-label">Ahorro</span>
+                              <p
+                                className={`cmp-metric ${good ? "cmp-metric--good" : "cmp-metric--none"}`}
+                              >
+                                {good ? (
+                                  <CountUp
+                                    value={result.saving}
+                                    delay={delay}
+                                  />
+                                ) : (
+                                  "—"
+                                )}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="cmp-cell-label">
+                                Ahorro anual
+                              </span>
+                              <p
+                                className={`cmp-metric ${result.annualSaving > 0 ? "cmp-metric--good" : "cmp-metric--none"}`}
+                              >
+                                {result.annualSaving > 0 ? (
+                                  <CountUp
+                                    value={result.annualSaving}
+                                    delay={delay}
+                                  />
+                                ) : (
+                                  "—"
+                                )}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="cmp-cell-label">Energía</span>
+                              <p className="cmp-metric">
+                                <CountUp value={result.energy} delay={delay} />
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div
+                          className="cmp-billbar"
+                          role="img"
+                          aria-label={`${money(result.total)} frente a ${money(currentBill)} de la factura actual`}
+                        >
+                          <motion.div
+                            className="cmp-billbar-fill"
+                            data-good={good}
+                            initial={{
+                              scaleX: reduced ? result.total / barMax : 0,
+                            }}
+                            animate={{ scaleX: result.total / barMax }}
+                            transition={{
+                              duration: 0.7,
+                              delay,
+                              ease: EASE_OUT,
+                            }}
+                          />
+                          <span
+                            className="cmp-billbar-mark"
+                            style={{ left: `${(currentBill / barMax) * 100}%` }}
+                          />
+                        </div>
+
+                        <div className="cmp-row-actions">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedOffer(result)}
+                            className="cmp-btn cmp-btn--secondary"
+                          >
+                            Ver detalle
+                          </button>
+                          <button
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() =>
+                              setSelectedSnapshotOffers((current) =>
+                                current.includes(result.offerName)
+                                  ? current.filter(
+                                      (name) => name !== result.offerName,
+                                    )
+                                  : [...current, result.offerName],
+                              )
+                            }
+                            className="cmp-btn cmp-btn--secondary"
+                          >
+                            {selected
+                              ? "Quitar de compartir"
+                              : "Añadir a compartir"}
+                          </button>
+                        </div>
+                      </motion.article>
+                    );
+                  })}
+                </motion.div>
+              )}
+
+              {submitted && results.length === 0 && (
+                <motion.p
+                  key="empty"
+                  className="cmp-notice cmp-notice--warn"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.22, ease: EASE_OUT }}
+                >
+                  No hay ofertas compatibles con la tarifa detectada. Revisa los
+                  periodos de potencia y consumo y comprueba que los datos de la
+                  factura estén completos.
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </section>
+        )}
       </main>
 
-      {selectedOffer && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-4 sm:items-center"
-          onClick={() => setSelectedOffer(null)}
-        >
-          <div
-            className="max-h-[90vh] w-full max-w-2xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
+      <AnimatePresence>
+        {selectedOffer && (
+          <motion.div
+            className="cmp-scrim"
+            onClick={() => setSelectedOffer(null)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[2px] text-[#8a7b4f]">
-                  Detalle
-                </p>
-                <h2 className="mt-2 text-2xl font-black">
-                  {getDisplayOfferName(selectedOffer.offerName)}
-                </h2>
-                <p className="mt-1 text-sm text-[#777b87]">
-                  {selectedOffer.tariff}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedOffer(null)}
-                className="rounded-xl bg-[#f5f6f9] px-3 py-2 text-sm font-bold"
-              >
-                Cerrar
-              </button>
-            </div>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {[
-                ...(["P1", "P2", "P3"] as const).map((period, index) => {
-                  const offer = IBERDROLA_OFFERS.find(
-                    (item) => item.id === selectedOffer.offerId,
-                  );
-                  const price = offer?.energyPrices[index];
-                  return [
-                    `Precio energía ${period}`,
-                    price == null
-                      ? "No aplicable"
-                      : `${price.toLocaleString("es-ES", { minimumFractionDigits: 4, maximumFractionDigits: 6 })} €/kWh`,
-                  ];
-                }),
-                [
-                  "Energía antes de descuento",
-                  money(selectedOffer.energyBeforeDiscount),
-                ],
-                ["Energía", money(selectedOffer.energy)],
-                [
-                  "Potencia antes de descuento",
-                  money(selectedOffer.powerBeforeDiscount),
-                ],
-                ["Potencia", money(selectedOffer.power)],
-                ["Impuesto eléctrico", money(selectedOffer.electricityTax)],
-                ["Pack neto", money(selectedOffer.packNet)],
-                ["IVA / IGIC", money(selectedOffer.iva)],
-                ["Total", money(selectedOffer.total)],
-                ["Ahorro", money(selectedOffer.saving)],
-                ["Ahorro anual", money(selectedOffer.annualSaving)],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-2xl bg-[#f7f8fa] p-4">
-                  <p className="text-xs text-[#858995]">{label}</p>
-                  <p className="mt-1 font-extrabold">{value}</p>
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cmp-detail-title"
+              className="cmp-dialog"
+              onClick={(event: React.MouseEvent) => event.stopPropagation()}
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.99 }}
+              transition={{ duration: 0.26, ease: EASE_OUT }}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h2 id="cmp-detail-title" className="cmp-title-lg">
+                    {getDisplayOfferName(selectedOffer.offerName)}
+                  </h2>
+                  <p className="cmp-muted mt-1 text-sm">
+                    {selectedOffer.tariff}
+                  </p>
                 </div>
-              ))}
-            </div>
-            <p className="mt-5 text-xs leading-5 text-[#777b87]">
-              {selectedOffer.discountText}
-            </p>
-          </div>
-        </div>
-      )}
-    </>
+                <button
+                  type="button"
+                  onClick={() => setSelectedOffer(null)}
+                  className="cmp-btn cmp-btn--quiet"
+                >
+                  Cerrar
+                </button>
+              </div>
+              <dl className="cmp-dl">
+                {[
+                  ...(["P1", "P2", "P3"] as const).map((period, index) => {
+                    const offer = IBERDROLA_OFFERS.find(
+                      (item) => item.id === selectedOffer.offerId,
+                    );
+                    const price = offer?.energyPrices[index];
+                    return [
+                      `Precio energía ${period}`,
+                      price == null
+                        ? "No aplicable"
+                        : `${price.toLocaleString("es-ES", { minimumFractionDigits: 4, maximumFractionDigits: 6 })} €/kWh`,
+                    ];
+                  }),
+                  [
+                    "Energía antes de descuento",
+                    money(selectedOffer.energyBeforeDiscount),
+                  ],
+                  ["Energía", money(selectedOffer.energy)],
+                  [
+                    "Potencia antes de descuento",
+                    money(selectedOffer.powerBeforeDiscount),
+                  ],
+                  ["Potencia", money(selectedOffer.power)],
+                  ["Impuesto eléctrico", money(selectedOffer.electricityTax)],
+                  ["Pack neto", money(selectedOffer.packNet)],
+                  ["IVA / IGIC", money(selectedOffer.iva)],
+                  ["Total", money(selectedOffer.total)],
+                  ["Ahorro", money(selectedOffer.saving)],
+                  ["Ahorro anual", money(selectedOffer.annualSaving)],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    data-strong={label === "Total" || label === "Ahorro anual"}
+                  >
+                    <dt>{label}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              {selectedOffer.discountText && (
+                <p className="cmp-muted mt-5 text-xs leading-5">
+                  {selectedOffer.discountText}
+                </p>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
