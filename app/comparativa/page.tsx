@@ -127,20 +127,50 @@ function Field({
   );
 }
 
+type Tone = "gold" | "teal" | "orange" | "blue" | "green";
+
+const GROUP_ICONS: Record<string, string> = {
+  power: "M13 2 4 14h7l-1 8 9-12h-7l1-8Z",
+  energy: "M12 3c3 4 6 7 6 11a6 6 0 0 1-12 0c0-4 3-7 6-11Z",
+  bill: "M7 3h10v18l-2.5-1.5L12 21l-2.5-1.5L7 21V3Zm3 5h4m-4 4h4",
+  tax: "M19 5 5 19M7.5 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm9 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z",
+  profile: "M4 20V10m6 10V4m6 16v-7m4 7H2",
+};
+
 function Group({
   title,
   description,
+  tone,
+  icon,
   children,
 }: {
   title: string;
   description?: string;
+  tone: Tone;
+  icon: keyof typeof GROUP_ICONS;
   children: React.ReactNode;
 }) {
   return (
-    <section className="cmp-group">
-      <div>
-        <h2>{title}</h2>
-        {description && <p className="cmp-group-desc">{description}</p>}
+    <section className="cmp-group" data-tone={tone}>
+      <div className="cmp-group-head">
+        <span className="cmp-group-icon" aria-hidden="true">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.9}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d={GROUP_ICONS[icon]} />
+          </svg>
+        </span>
+        <div className="min-w-0">
+          <h2>{title}</h2>
+          {description && <p className="cmp-group-desc">{description}</p>}
+        </div>
       </div>
       <div className="min-w-0">{children}</div>
     </section>
@@ -253,6 +283,20 @@ function getDisplayOfferName(name: string) {
   )
     return "Supertranquilidad";
   return name;
+}
+
+/**
+ * Colour of an offer's stripe and bill line, in Iberdrola colours (never
+ * red): green when the offer saves money over a year, otherwise blue,
+ * green and orange for the three offer families.
+ */
+function getOfferTone(name: string, annualSaving: number): Tone {
+  if (annualSaving >= 0) return "green";
+  const value = name.toLowerCase();
+  if (value.includes("inteligente")) return "blue";
+  if (value.includes("impuls")) return "green";
+  if (value.includes("tranquilidad")) return "orange";
+  return "blue";
 }
 
 const PERIODS = ["P1", "P2", "P3", "P4", "P5", "P6"] as const;
@@ -681,7 +725,9 @@ export default function ComparativaPage() {
 
   return (
     <div className="cmp">
-      <header className="cmp-topbar">
+      <header className="cmp-hero">
+        <span className="cmp-hero-glow cmp-hero-glow--a" aria-hidden="true" />
+        <span className="cmp-hero-glow cmp-hero-glow--b" aria-hidden="true" />
         <div className="cmp-container cmp-topbar-inner">
           <button
             type="button"
@@ -697,17 +743,16 @@ export default function ComparativaPage() {
             jsmile<span>.es</span>
           </p>
         </div>
-      </header>
-
-      <main className="cmp-container pb-24 pt-10">
-        <div className="mb-8 max-w-2xl">
-          <h1>Comparativa Iberdrola</h1>
-          <p className="cmp-muted mt-3">
+        <div className="cmp-container cmp-hero-body">
+          <h1 className="cmp-hero-title">Comparativa Iberdrola</h1>
+          <p className="cmp-hero-lead">
             Introduce los datos de la factura actual para calcular las ofertas
             Iberdrola compatibles con la potencia contratada.
           </p>
         </div>
+      </header>
 
+      <main className="cmp-container cmp-main pb-24">
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <ClearContext.Provider
             value={{ ghosts: clearGhosts, runId: clearRun }}
@@ -715,6 +760,8 @@ export default function ComparativaPage() {
             <div className="cmp-sheet">
               <Group
                 title="Potencia contratada"
+                tone="gold"
+                icon="power"
                 description="Indica la potencia contratada en cada periodo."
               >
                 <div className="cmp-fields">
@@ -736,6 +783,8 @@ export default function ComparativaPage() {
 
               <Group
                 title="Consumo"
+                tone="teal"
+                icon="energy"
                 description="Introduce el consumo de la factura en cada periodo."
               >
                 <div className="cmp-fields">
@@ -754,6 +803,8 @@ export default function ComparativaPage() {
 
               <Group
                 title="Datos de la factura"
+                tone="blue"
+                icon="bill"
                 description="Introduce los importes del periodo facturado."
               >
                 <div className="cmp-fields">
@@ -798,6 +849,8 @@ export default function ComparativaPage() {
 
               <Group
                 title="Impuestos"
+                tone="orange"
+                icon="tax"
                 description="Introduce los porcentajes que aparecen en la factura."
               >
                 <div className="cmp-fields">
@@ -820,6 +873,8 @@ export default function ComparativaPage() {
 
               <Group
                 title="Perfil de consumo"
+                tone="green"
+                icon="profile"
                 description="Perfil fijo aplicado a las ofertas de dos precios."
               >
                 <div
@@ -1074,6 +1129,11 @@ export default function ComparativaPage() {
                           variants={rowVariants}
                           className="cmp-row"
                           data-selected={selected}
+                          data-tone={getOfferTone(
+                            result.offerName,
+                            result.annualSaving,
+                          )}
+                          data-best={result.offerId === bestOfferId}
                         >
                           <div className="cmp-row-main">
                             <div className="min-w-0">
