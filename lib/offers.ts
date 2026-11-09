@@ -38,7 +38,7 @@ export type ComparadorOffer = {
 };
 
 /**
- * Generated from "20261103_Comparador_-_Ofertas_Iberdrola.xlsx"
+ * Generated from "20261109_Comparador_-_Ofertas_Iberdrola.xlsx"
  * (Calculo rows 53-115, Calculo PyS and Precios). Every value is the one
  * the workbook uses, so the comparativa matches its Comparativa sheet.
  */
@@ -745,7 +745,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       21.797514, 11.870515, 7.1523, 5.598084, 3.458986, 3.757407,
     ],
-    energyPrices: [0.358127, 0.321894, 0.290612, 0.262412, 0.240776, 0.246975],
+    energyPrices: [0.372413, 0.33618, 0.304898, 0.276698, 0.255062, 0.261261],
     energyDiscount: 0.3,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -764,7 +764,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       21.797514, 11.870515, 7.1523, 5.598084, 4.458986, 3.757407,
     ],
-    energyPrices: [0.244, 0.244, 0.244, 0.244, 0.244, 0.244],
+    energyPrices: [0.257, 0.257, 0.257, 0.257, 0.257, 0.257],
     energyDiscount: 0.2,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -784,7 +784,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
       21.797514, 11.870514999999997, 7.152299999999999, 6.598084, 6.458986,
       5.757407,
     ],
-    energyPrices: [0.228, 0.228, 0.228, 0.228, 0.228, 0.228],
+    energyPrices: [0.241, 0.241, 0.241, 0.241, 0.241, 0.241],
     energyDiscount: 0.2,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -803,7 +803,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       21.797514, 11.870515, 10.9523, 10.398084, 9.258986, 9.31,
     ],
-    energyPrices: [0.233, 0.233, 0.233, 0.233, 0.233, 0.233],
+    energyPrices: [0.246, 0.246, 0.246, 0.246, 0.246, 0.246],
     energyDiscount: 0.2,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -820,7 +820,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     name: "3.0TD Impulsa Estable",
     tariff: "3.0TD",
     powerPricesAnnual: [9.31, 9.31, 9.31, 9.31, 9.31, 9.31],
-    energyPrices: [0.261, 0.261, 0.261, 0.261, 0.261, 0.261],
+    energyPrices: [0.274, 0.274, 0.274, 0.274, 0.274, 0.274],
     energyDiscount: 0.2,
     powerDiscount: 0.2,
     pysEnergyDiscount: 0,
@@ -839,7 +839,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       21.797514, 11.870515, 10.9523, 10.398084, 9.258986, 9.31,
     ],
-    energyPrices: [0.225, 0.225, 0.225, 0.225, 0.225, 0.225],
+    energyPrices: [0.238, 0.238, 0.238, 0.238, 0.238, 0.238],
     energyDiscount: 0.2,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -858,7 +858,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       21.797514, 11.870515, 9.0523, 7.998084, 6.858986, 6.257407,
     ],
-    energyPrices: [0.225, 0.225, 0.225, 0.225, 0.225, 0.225],
+    energyPrices: [0.238, 0.238, 0.238, 0.238, 0.238, 0.238],
     energyDiscount: 0.2,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -877,7 +877,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       21.797514, 11.870515, 9.0523, 7.998084, 6.858986, 6.257407,
     ],
-    energyPrices: [0.219, 0.219, 0.219, 0.219, 0.219, 0.219],
+    energyPrices: [0.232, 0.232, 0.232, 0.232, 0.232, 0.232],
     energyDiscount: 0.2,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -896,7 +896,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       20.376927, 10.617621, 4.481534, 3.886333, 2.513851, 1.442287,
     ],
-    energyPrices: [0.279495, 0.244668, 0.207255, 0.179088, 0.162481, 0.176861],
+    energyPrices: [0.289495, 0.254668, 0.217255, 0.189088, 0.172481, 0.186861],
     energyDiscount: 0,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -915,10 +915,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       20.376927, 10.617621, 4.481534, 3.886333, 2.513851, 1.442287,
     ],
-    energyPrices: [
-      0.3052412222222222, 0.246145, 0.205448, 0.18404500000000001,
-      0.17682900000000001, 0.183975,
-    ],
+    energyPrices: [0.316352, 0.257256, 0.216559, 0.195156, 0.18794, 0.195086],
     energyDiscount: 0.1,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -937,9 +934,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       20.376927, 10.617621, 4.481534, 3.886333, 2.513851, 1.442287,
     ],
-    energyPrices: [
-      0.32078711764705886, 0.245244, 0.195799, 0.172426, 0.172248, 0.177885,
-    ],
+    energyPrices: [0.332552, 0.257009, 0.207564, 0.184191, 0.184013, 0.18965],
     energyDiscount: 0.15,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -958,7 +953,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       21.797514, 11.870515, 7.1523, 5.598084, 4.458986, 3.757407,
     ],
-    energyPrices: [0.38, 0.38, 0.38, 0.38, 0.38, 0.149],
+    energyPrices: [0.39, 0.39, 0.39, 0.39, 0.39, 0.159],
     energyDiscount: 0,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -977,7 +972,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       21.597514, 11.760515, 7.0123, 5.398084, 3.378986, 2.837407,
     ],
-    energyPrices: [0.28, 0.28, 0.28, 0.28, 0.28, 0.16],
+    energyPrices: [0.29, 0.29, 0.29, 0.29, 0.29, 0.17],
     energyDiscount: 0.2,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -996,7 +991,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       29.595367999999997, 15.514709, 6.801881, 5.393829, 2.125113, 1.004181,
     ],
-    energyPrices: [0.269074, 0.233838, 0.210651, 0.201548, 0.18133, 0.190716],
+    energyPrices: [0.278486, 0.24325, 0.220063, 0.21096, 0.190742, 0.200128],
     energyDiscount: 0.15,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -1015,7 +1010,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       30.604795, 16.519427, 7.8053099999999995, 6.397258, 3.128542, 2.005753,
     ],
-    energyPrices: [0.241525, 0.209539, 0.190042, 0.176586, 0.158831, 0.164858],
+    energyPrices: [0.250937, 0.218951, 0.199454, 0.185998, 0.168243, 0.17427],
     energyDiscount: 0.15,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -1034,9 +1029,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       29.595367999999997, 15.514709, 6.801881, 5.393829, 2.125113, 1.004181,
     ],
-    energyPrices: [
-      0.2476301111111111, 0.208333, 0.188785, 0.165295, 0.15384, 0.158788,
-    ],
+    energyPrices: [0.256519, 0.217222, 0.197674, 0.174184, 0.162729, 0.167677],
     energyDiscount: 0.1,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -1055,7 +1048,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       29.595367999999997, 15.514709, 6.801881, 5.393829, 2.125113, 1.004181,
     ],
-    energyPrices: [0.241642, 0.21757, 0.203521, 0.179511, 0.168089, 0.142835],
+    energyPrices: [0.249642, 0.22557, 0.211521, 0.187511, 0.176089, 0.150835],
     energyDiscount: 0,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -1074,9 +1067,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       29.595367999999997, 15.514709, 6.801881, 5.393829, 2.125113, 1.004181,
     ],
-    energyPrices: [
-      0.25547644444444445, 0.210445, 0.186931, 0.159418, 0.150281, 0.154994,
-    ],
+    energyPrices: [0.264888, 0.219857, 0.196343, 0.16883, 0.159693, 0.164406],
     energyDiscount: 0.15,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -1095,7 +1086,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
     powerPricesAnnual: [
       29.595367999999997, 15.514709, 6.801881, 5.393829, 2.125113, 1.004181,
     ],
-    energyPrices: [0.215487, 0.185813, 0.163891, 0.151555, 0.137264, 0.139295],
+    energyPrices: [0.223487, 0.193813, 0.171891, 0.159555, 0.145264, 0.147295],
     energyDiscount: 0,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
@@ -1115,7 +1106,7 @@ export const IBERDROLA_OFFERS: ComparadorOffer[] = [
       30.604795, 16.519426999999997, 7.8053099999999995, 6.397258, 3.128542,
       2.005753,
     ],
-    energyPrices: [0.28, 0.28, 0.28, 0.28, 0.28, 0.16],
+    energyPrices: [0.29, 0.29, 0.29, 0.29, 0.29, 0.17],
     energyDiscount: 0.2,
     powerDiscount: 0,
     pysEnergyDiscount: 0,
