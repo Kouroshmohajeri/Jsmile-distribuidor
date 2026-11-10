@@ -905,6 +905,69 @@ body {
     color: var(--tone);
   }
 
+  /* "Apto" verdict, shown before the prices */
+  .cmp-verdict {
+    --verdict: var(--tone-green);
+    --verdict-wash: var(--tone-green-wash);
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 40px 24px;
+    text-align: center;
+    background: linear-gradient(180deg, var(--verdict-wash), var(--color-paper-2) 70%);
+    border: 1px solid color-mix(in oklab, var(--verdict) 30%, var(--color-rule));
+    border-radius: var(--radius-panel);
+  }
+  .cmp-verdict-mark-wrap {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 96px;
+    height: 96px;
+    margin-bottom: 8px;
+  }
+  .cmp-verdict-mark,
+  .cmp-verdict-ripple {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+  }
+  .cmp-verdict-mark {
+    display: grid;
+    place-items: center;
+    background: var(--verdict);
+    color: var(--color-accent-ink);
+    box-shadow: 0 16px 36px -14px var(--verdict);
+  }
+  .cmp-verdict-ripple {
+    border: 2px solid var(--verdict);
+  }
+  .cmp-verdict-title {
+    font-size: clamp(var(--fs-2xl), 6vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--verdict);
+  }
+  .cmp-verdict-sub {
+    max-width: 40ch;
+    color: var(--color-ink-2);
+    font-size: var(--fs-sm);
+  }
+  .cmp-verdict-pill {
+    --verdict: var(--tone-green);
+    --verdict-wash: var(--tone-green-wash);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px 4px 8px;
+    border-radius: var(--radius-pill);
+    background: var(--verdict-wash);
+    color: color-mix(in oklab, var(--verdict) 70%, var(--color-ink));
+    font-size: var(--fs-sm);
+    font-weight: 650;
+  }
+
   .cmp-title-lg {
     font-size: var(--fs-2xl) !important;
   }

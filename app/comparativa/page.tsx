@@ -27,6 +27,8 @@ import {
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 const CALC_DURATION_MS = 1000;
+/** How long the "Apto" verdict shows before the prices. */
+const VERDICT_DURATION_MS = 1400;
 const CALC_MESSAGES = [
   "Aplicando precios por periodo...",
   "Calculando potencia e impuestos...",
@@ -241,6 +243,98 @@ function ResetIcon() {
   );
 }
 
+/**
+ * "Apto" stamp shown before the prices, only when at least one offer saves
+ * the customer money. Without a saving the plans are shown with no verdict.
+ */
+function VerdictStamp({ bestAnnual }: { bestAnnual: number }) {
+  return (
+    <motion.div
+      className="cmp-verdict"
+      role="status"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.18 } }}
+      transition={{ duration: 0.3, ease: EASE_OUT }}
+    >
+      <div className="cmp-verdict-mark-wrap" aria-hidden="true">
+        <motion.span
+          className="cmp-verdict-ripple"
+          initial={{ scale: 0.8, opacity: 0.45 }}
+          animate={{ scale: 1.9, opacity: 0 }}
+          transition={{ duration: 1, delay: 0.35, ease: "easeOut" }}
+        />
+        <motion.span
+          className="cmp-verdict-mark"
+          initial={{ scale: 0, rotate: -25 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 18 }}
+        >
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <motion.path
+              d="M5 12.5l4.5 4.5L19 7.5"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.42, delay: 0.22, ease: EASE_OUT }}
+            />
+          </svg>
+        </motion.span>
+      </div>
+      <motion.p
+        className="cmp-verdict-title"
+        initial={{ opacity: 0, scale: 0.7 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: "spring", stiffness: 260, damping: 16, delay: 0.3 }}
+      >
+        Apto
+      </motion.p>
+      <motion.p
+        className="cmp-verdict-sub"
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.48, ease: EASE_OUT }}
+      >
+        {`Podemos mejorar su factura: hasta ${money(bestAnnual)} de ahorro al año.`}
+      </motion.p>
+    </motion.div>
+  );
+}
+
+function VerdictPill() {
+  return (
+    <motion.span
+      className="cmp-verdict-pill"
+      initial={{ opacity: 0, scale: 0.6 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ type: "spring", stiffness: 380, damping: 20 }}
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M5 12.5l4.5 4.5L19 7.5" />
+      </svg>
+      Apto
+    </motion.span>
+  );
+}
+
 const listVariants: Variants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.05 } },
@@ -395,6 +489,7 @@ export default function ComparativaPage() {
   const [submitted, setSubmitted] = useState(false);
   const [calculating, setCalculating] = useState(false);
   const [calcMessage, setCalcMessage] = useState(CALC_MESSAGES[0]);
+  const [showVerdict, setShowVerdict] = useState(false);
   const [runId, setRunId] = useState(0);
   const [selectedOffer, setSelectedOffer] = useState<OfferResult | null>(null);
   const [selectedSnapshotOffers, setSelectedSnapshotOffers] = useState<
@@ -582,10 +677,18 @@ export default function ComparativaPage() {
     setSelectedSnapshotOffers([]);
     setSubmitted(false);
 
+    setShowVerdict(false);
+
     const reveal = () => {
       setCalculating(false);
       setSubmitted(true);
       setRunId((id) => id + 1);
+      if (!reduced) {
+        setShowVerdict(true);
+        calcTimers.current.push(
+          window.setTimeout(() => setShowVerdict(false), VERDICT_DURATION_MS),
+        );
+      }
     };
 
     if (reduced) {
@@ -722,6 +825,13 @@ export default function ComparativaPage() {
   }
 
   const showResults = calculating || submitted;
+  const bestAnnualSaving = results.reduce(
+    (best, r) => Math.max(best, r.annualSaving),
+    -Infinity,
+  );
+  // "Apto" only when some offer saves money; otherwise just the plans.
+  const hasSaving = results.length > 0 && bestAnnualSaving > 0;
+  const verdictActive = submitted && showVerdict && hasSaving;
 
   return (
     <div className="cmp">
@@ -1023,13 +1133,18 @@ export default function ComparativaPage() {
             >
               <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div className="max-w-2xl">
-                  <h2 className="cmp-title-lg">Ofertas compatibles</h2>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="cmp-title-lg">Ofertas compatibles</h2>
+                    {submitted && !verdictActive && hasSaving && (
+                      <VerdictPill key={`pill-${runId}`} />
+                    )}
+                  </div>
                   <p className="cmp-muted mt-2 text-sm">
                     Los importes se calculan con la estructura de periodos y
                     reglas del nuevo modelo Excel.
                   </p>
                 </div>
-                {submitted && results.length > 0 && (
+                {submitted && !verdictActive && results.length > 0 && (
                   <button
                     type="button"
                     onClick={handleSnapshot}
@@ -1089,7 +1204,14 @@ export default function ComparativaPage() {
                   </motion.div>
                 )}
 
-                {submitted && results.length > 0 && (
+                {verdictActive && (
+                  <VerdictStamp
+                    key={`verdict-${runId}`}
+                    bestAnnual={bestAnnualSaving}
+                  />
+                )}
+
+                {submitted && !verdictActive && results.length > 0 && (
                   <motion.div
                     key={`results-${runId}`}
                     variants={listVariants}
